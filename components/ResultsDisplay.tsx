@@ -24,6 +24,26 @@ const ResultsDisplay: React.FC<Props> = ({ results, chartData, aiInsight, isAiLo
   const formatNumber = (val: number) => 
     new Intl.NumberFormat('fr-FR', { maximumFractionDigits: 0 }).format(val);
 
+  // Fonction utilitaire pour rendre le Markdown simple (Gras **texte** et sauts de ligne)
+  const renderStructuredAnalysis = (text: string) => {
+    if (!text) return null;
+    return text.split('\n').map((line, i) => {
+      // On sépare les lignes vides pour l'espacement
+      if (line.trim() === '') return <div key={i} className="h-2" />;
+      
+      // On gère le gras **
+      const parts = line.split('**');
+      return (
+        <div key={i} className={`mb-1 ${line.trim().startsWith('-') ? 'pl-4 relative' : ''}`}>
+           {line.trim().startsWith('-') && <span className="absolute left-0 top-2 w-1.5 h-1.5 bg-brand-accent rounded-full opacity-70"></span>}
+           {parts.map((part, j) => 
+             j % 2 === 1 ? <strong key={j} className="text-brand-accent font-bold">{part}</strong> : <span key={j}>{part.replace(/^- /, '')}</span>
+           )}
+        </div>
+      );
+    });
+  };
+
   const handleDownloadPDF = async () => {
     setIsGeneratingPdf(true);
     
@@ -37,9 +57,8 @@ const ResultsDisplay: React.FC<Props> = ({ results, chartData, aiInsight, isAiLo
     window.scrollTo(0, 0);
 
     // 2. On crée un conteneur ABSOLUTE positionné à 0,0 sur le body.
-    // Cela garantit que html2canvas capture exactement ce qu'on veut sans décalage viewport.
     const overlay = document.createElement('div');
-    overlay.style.position = 'absolute'; // Absolute est plus sûr que Fixed pour html2canvas
+    overlay.style.position = 'absolute'; 
     overlay.style.top = '0';
     overlay.style.left = '0';
     overlay.style.width = `${A4_WIDTH_PX}px`; 
@@ -77,8 +96,15 @@ const ResultsDisplay: React.FC<Props> = ({ results, chartData, aiInsight, isAiLo
     if (header) {
       header.classList.remove('hidden');
       header.classList.add('block');
-      // On s'assure que le logo brille aussi sur le PDF si l'icône est présente
-      // (Le header cloné contient le logo HTML, on peut le laisser tel quel)
+    }
+
+    // Gestion de la couleur de texte pour l'impression dans la zone sombre
+    const darkBg = clone.querySelector('.bg-brand-dark');
+    if (darkBg) {
+        darkBg.classList.remove('text-white');
+        darkBg.classList.add('text-slate-900', 'bg-white', 'border', 'border-gray-200'); // Inversion pour économie d'encre et lisibilité
+        const lightTexts = darkBg.querySelectorAll('.text-gray-100');
+        lightTexts.forEach(t => t.classList.replace('text-gray-100', 'text-slate-700'));
     }
 
     overlay.appendChild(clone);
@@ -91,7 +117,7 @@ const ResultsDisplay: React.FC<Props> = ({ results, chartData, aiInsight, isAiLo
     feedback.style.top = '50%';
     feedback.style.left = '50%';
     feedback.style.transform = 'translate(-50%, -50%)';
-    feedback.style.background = '#1a365d'; // Brand Dark
+    feedback.style.background = '#1a365d'; 
     feedback.style.color = 'white';
     feedback.style.padding = '16px 32px';
     feedback.style.borderRadius = '12px';
@@ -111,9 +137,8 @@ const ResultsDisplay: React.FC<Props> = ({ results, chartData, aiInsight, isAiLo
         scale: 2, 
         useCORS: true, 
         logging: false,
-        windowWidth: 1200, // Simule un écran large pour éviter le responsive mobile
+        windowWidth: 1200, 
         width: A4_WIDTH_PX
-        // Note: Pas de x, y ou scrollX ici, on laisse le positionnement absolute faire le travail
       },
       jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
     };
@@ -240,11 +265,11 @@ const ResultsDisplay: React.FC<Props> = ({ results, chartData, aiInsight, isAiLo
             <h3 className="flex items-center gap-2 text-brand-accent font-bold mb-4 uppercase text-xs tracking-widest">
                 <Sparkles size={14} className="text-brand-accent" /> Recommandation Stratégique
             </h3>
-            <div className="font-serif italic text-lg leading-relaxed text-gray-100 print:text-gray-800 border-l-4 border-brand-accent pl-4">
+            <div className="text-sm md:text-base leading-relaxed text-gray-100 print:text-gray-800 border-l-4 border-brand-accent pl-4">
                 {isAiLoading ? (
-                    <span className="animate-pulse">Analyse de vos données en cours par nos modèles...</span>
+                    <span className="animate-pulse italic">Analyse de vos données en cours par nos modèles...</span>
                 ) : (
-                    aiInsight || "Génération de l'analyse..."
+                    renderStructuredAnalysis(aiInsight || "") || "Génération de l'analyse..."
                 )}
             </div>
          </div>

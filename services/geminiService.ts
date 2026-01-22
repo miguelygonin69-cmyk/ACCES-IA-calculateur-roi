@@ -23,10 +23,25 @@ export const generateStrategicInsight = async (
       - Heures "perdues" récupérables : ${results.totalHoursSaved} h / an
       
       OBJECTIF :
-      Rédige un conseil stratégique (max 3 phrases) percutant et visionnaire.
-      Ne dis pas "réinvestir dans la R&D" ou des banalités.
-      Donne un exemple d'avantage compétitif précis que le secteur "${inputs.industry}" peut débloquer avec ce budget ou ce temps (ex: hyper-personnalisation client, réduction du time-to-market, nouveaux services).
-      Ton ton doit être direct, professionnel, orienté ROI. Pas de jargon marketing vide.
+      Génère une analyse stratégique structurée en 3 sections distinctes :
+
+      **1. Recommandations Personnalisées**
+      - 3 actions concrètes prioritaires adaptées à ce secteur et cette taille d'entreprise
+      - Sois très spécifique et actionnable
+
+      **2. Analyse Sectorielle**
+      - Tendances IA spécifiques à ce secteur
+      - Benchmarks de ROI dans l'industrie
+      - Opportunités sectorielles uniques
+
+      **3. Points d'Amélioration**
+      - Quick wins (résultats sous 3 mois)
+      - Optimisations moyen terme (3-6 mois)
+      - Transformations long terme (6-12 mois)
+
+      Ton style : Expert mais accessible, data-driven, focus sur l'impact business concret.
+      Format : Markdown avec **gras** pour les titres, tirets pour les listes. Pas de titre global, commence directement par la section 1.
+      Longueur : 300-400 mots maximum.
     `;
 
     const response = await ai.models.generateContent({
@@ -34,7 +49,7 @@ export const generateStrategicInsight = async (
       contents: prompt,
       config: {
         thinkingConfig: { thinkingBudget: 0 },
-        temperature: 0.6,
+        temperature: 0.7,
       }
     });
 
