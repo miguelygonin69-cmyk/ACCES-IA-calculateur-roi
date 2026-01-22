@@ -32,27 +32,22 @@ const ResultsDisplay: React.FC<Props> = ({ results, chartData, aiInsight, isAiLo
 
     const A4_WIDTH_PX = 794; 
     
-    // 1. Overlay blanc qui couvre tout l'écran
-    // IMPORTANT : On aligne tout en haut à gauche (0,0) sans Flexbox center
-    // Cela évite que html2canvas ne "coupe" le début de l'image à cause d'un offset X
+    // SOLUTION PDF ROBUSTE :
+    // 1. On remonte en haut de page pour que le moteur de rendu parte de 0
+    window.scrollTo(0, 0);
+
+    // 2. On crée un conteneur ABSOLUTE positionné à 0,0 sur le body.
+    // Cela garantit que html2canvas capture exactement ce qu'on veut sans décalage viewport.
     const overlay = document.createElement('div');
-    overlay.style.position = 'fixed';
+    overlay.style.position = 'absolute'; // Absolute est plus sûr que Fixed pour html2canvas
     overlay.style.top = '0';
     overlay.style.left = '0';
-    overlay.style.width = '100vw';
-    overlay.style.height = '100vh';
+    overlay.style.width = `${A4_WIDTH_PX}px`; 
     overlay.style.zIndex = '9999';
     overlay.style.backgroundColor = '#ffffff';
-    overlay.style.overflow = 'hidden'; // Pas de scrollbars
-    
-    // 2. Conteneur spécifique pour la capture (Format A4)
-    const printContainer = document.createElement('div');
-    printContainer.style.width = `${A4_WIDTH_PX}px`;
-    printContainer.style.backgroundColor = '#ffffff'; 
-    // Marges internes du document PDF (padding CSS)
-    printContainer.style.padding = '30px 40px'; 
-    printContainer.style.boxSizing = 'border-box'; // Le padding est inclus dans les 794px
-    printContainer.className = 'font-sans text-slate-900'; 
+    overlay.style.padding = '40px'; 
+    overlay.style.boxSizing = 'border-box';
+    overlay.className = 'font-sans text-slate-900'; 
 
     // 3. Clonage
     const clone = originalElement.cloneNode(true) as HTMLElement;
@@ -65,8 +60,6 @@ const ResultsDisplay: React.FC<Props> = ({ results, chartData, aiInsight, isAiLo
     clone.style.boxShadow = 'none';
     
     // CORRECTION LAYOUT : On force la grille 3 colonnes
-    // Le format A4 avec padding (714px) est < 768px (breakpoint md), donc Tailwind passerait en 1 colonne.
-    // On force manuellement la classe grid-cols-3.
     const grids = clone.querySelectorAll('.md\\:grid-cols-3');
     grids.forEach(el => {
       el.classList.remove('md:grid-cols-3', 'grid-cols-1');
@@ -79,15 +72,16 @@ const ResultsDisplay: React.FC<Props> = ({ results, chartData, aiInsight, isAiLo
     const cta = clone.querySelector('#cta-section');
     if (cta) cta.remove();
 
-    // Affichage Header
+    // Affichage Header et Update Logo pour PDF
     const header = clone.querySelector('#report-header');
     if (header) {
       header.classList.remove('hidden');
       header.classList.add('block');
+      // On s'assure que le logo brille aussi sur le PDF si l'icône est présente
+      // (Le header cloné contient le logo HTML, on peut le laisser tel quel)
     }
 
-    printContainer.appendChild(clone);
-    overlay.appendChild(printContainer);
+    overlay.appendChild(clone);
     document.body.appendChild(overlay);
 
     // Feedback visuel
@@ -97,7 +91,7 @@ const ResultsDisplay: React.FC<Props> = ({ results, chartData, aiInsight, isAiLo
     feedback.style.top = '50%';
     feedback.style.left = '50%';
     feedback.style.transform = 'translate(-50%, -50%)';
-    feedback.style.background = '#0f172a';
+    feedback.style.background = '#1a365d'; // Brand Dark
     feedback.style.color = 'white';
     feedback.style.padding = '16px 32px';
     feedback.style.borderRadius = '12px';
@@ -110,26 +104,23 @@ const ResultsDisplay: React.FC<Props> = ({ results, chartData, aiInsight, isAiLo
     await new Promise(resolve => setTimeout(resolve, 1500));
 
     const opt = {
-      margin: 0, // On utilise le padding du printContainer pour les marges
+      margin: 0,
       filename: `Nexalis_Audit_ROI_${new Date().toLocaleDateString('fr-FR').replace(/\//g, '-')}.pdf`,
       image: { type: 'jpeg', quality: 0.98 },
       html2canvas: { 
         scale: 2, 
         useCORS: true, 
         logging: false,
-        scrollY: 0,
-        scrollX: 0, // CRITIQUE : Force le début de capture à gauche
-        windowWidth: A4_WIDTH_PX,
-        width: A4_WIDTH_PX,
-        x: 0, // CRITIQUE : Force l'origine X
-        y: 0
+        windowWidth: 1200, // Simule un écran large pour éviter le responsive mobile
+        width: A4_WIDTH_PX
+        // Note: Pas de x, y ou scrollX ici, on laisse le positionnement absolute faire le travail
       },
       jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
     };
 
     try {
       // @ts-ignore
-      await window.html2pdf().set(opt).from(printContainer).save();
+      await window.html2pdf().set(opt).from(overlay).save();
     } catch (error) {
       console.error("Erreur PDF:", error);
     } finally {
@@ -162,10 +153,13 @@ const ResultsDisplay: React.FC<Props> = ({ results, chartData, aiInsight, isAiLo
       </div>
 
       {/* Header PDF Only */}
-      <div id="report-header" className="hidden mb-8 border-b-2 border-brand-primary pb-4">
+      <div id="report-header" className="hidden mb-8 border-b-2 border-brand-dark pb-4">
         <div className="flex justify-between items-center">
-            <h1 className="text-2xl font-bold text-brand-dark">Nexalis Solutions</h1>
-            <span className="text-sm text-gray-500">Rapport d'opportunité IA</span>
+             <div className="flex items-center gap-3">
+                 <Sparkles className="h-6 w-6 text-yellow-400 fill-yellow-400" />
+                 <h1 className="text-2xl font-bold text-brand-dark uppercase">Nexalis Solutions</h1>
+             </div>
+            <span className="text-sm text-gray-500 font-medium">Rapport d'opportunité IA</span>
         </div>
         <div className="mt-4 text-sm text-gray-600">
             Audit généré le {new Date().toLocaleDateString('fr-FR')} pour une entreprise du secteur <b>{inputs.industry}</b> ({inputs.employees} employés).
@@ -195,11 +189,11 @@ const ResultsDisplay: React.FC<Props> = ({ results, chartData, aiInsight, isAiLo
                     <p className="text-2xl font-extrabold text-brand-dark mt-1">{formatNumber(results.totalHoursSaved)} h</p>
                 </div>
                 <div className="bg-blue-50 p-2 rounded-lg">
-                    <Clock className="h-5 w-5 text-brand-primary" />
+                    <Clock className="h-5 w-5 text-brand-dark" />
                 </div>
             </div>
             <div className="w-full bg-gray-100 rounded-full h-1.5 mt-2">
-                <div className="bg-brand-primary h-1.5 rounded-full" style={{ width: '75%' }}></div>
+                <div className="bg-brand-dark h-1.5 rounded-full" style={{ width: '75%' }}></div>
             </div>
             <p className="text-xs text-gray-400 mt-2">Heures économisées / an</p>
         </div>
@@ -244,7 +238,7 @@ const ResultsDisplay: React.FC<Props> = ({ results, chartData, aiInsight, isAiLo
          <div className="absolute -right-10 -top-10 bg-white/5 w-40 h-40 rounded-full blur-3xl"></div>
          <div className="relative z-10">
             <h3 className="flex items-center gap-2 text-brand-accent font-bold mb-4 uppercase text-xs tracking-widest">
-                <Sparkles size={14} /> Recommandation Stratégique
+                <Sparkles size={14} className="text-brand-accent" /> Recommandation Stratégique
             </h3>
             <div className="font-serif italic text-lg leading-relaxed text-gray-100 print:text-gray-800 border-l-4 border-brand-accent pl-4">
                 {isAiLoading ? (
@@ -259,7 +253,7 @@ const ResultsDisplay: React.FC<Props> = ({ results, chartData, aiInsight, isAiLo
       {/* Chart */}
       <div className="bg-white p-6 rounded-2xl shadow-soft border border-gray-100 print:break-inside-avoid">
         <h3 className="font-bold text-gray-700 mb-6 flex items-center gap-2">
-            <Target size={18} className="text-brand-primary" />
+            <Target size={18} className="text-brand-dark" />
             Comparatif des coûts & gains
         </h3>
         <div className="h-64 w-full">
@@ -280,10 +274,10 @@ const ResultsDisplay: React.FC<Props> = ({ results, chartData, aiInsight, isAiLo
       </div>
 
       {/* Call to Action */}
-      <div id="cta-section" className="mt-8 text-center bg-brand-primary/5 rounded-xl p-8 border border-brand-primary/10 print:hidden">
+      <div id="cta-section" className="mt-8 text-center bg-brand-accent/5 rounded-xl p-8 border border-brand-accent/10 print:hidden">
         <h4 className="font-bold text-brand-dark text-lg mb-2">Transformez ce potentiel en réalité</h4>
         <p className="text-gray-600 mb-6 max-w-lg mx-auto">Ces chiffres sont théoriques. Pour une analyse fine de vos process et une feuille de route d'implémentation, parlons-en.</p>
-        <a href="https://calendly.com" target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-2 bg-brand-primary hover:bg-brand-dark text-white font-semibold py-3 px-8 rounded-full transition-all shadow-lg hover:shadow-xl hover:-translate-y-1">
+        <a href="https://calendly.com" target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-2 bg-brand-accent hover:bg-emerald-600 text-white font-semibold py-3 px-8 rounded-full transition-all shadow-lg hover:shadow-xl hover:-translate-y-1">
             <Calendar size={18} />
             Réserver un appel découverte
         </a>

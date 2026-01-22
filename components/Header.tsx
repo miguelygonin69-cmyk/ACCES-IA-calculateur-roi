@@ -7,12 +7,11 @@ const Header: React.FC = () => {
       <div className="container mx-auto px-4 py-3 flex items-center justify-between">
         {/* Logo Section */}
         <div className="flex items-center gap-3">
-          <div className="bg-brand-dark p-2 rounded-lg shadow-lg">
-            <Sparkles className="h-5 w-5 text-brand-accent fill-brand-accent" />
-          </div>
+          {/* Logo style "Pépite d'or" sans fond */}
+          <Sparkles className="h-8 w-8 text-yellow-400 fill-yellow-400 drop-shadow-sm" />
           <div className="leading-tight">
-            <h1 className="text-lg font-bold text-brand-dark tracking-tight uppercase">Nexalis Solutions</h1>
-            <p className="text-[10px] text-gray-500 font-semibold tracking-widest">STRATÉGIE & IA</p>
+            <h1 className="text-xl font-bold text-brand-dark tracking-tight uppercase">Nexalis Solutions</h1>
+            <p className="text-[10px] text-gray-500 font-medium tracking-widest">STRATÉGIE & IA</p>
           </div>
         </div>
 

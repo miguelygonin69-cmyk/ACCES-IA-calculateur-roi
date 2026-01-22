@@ -42,9 +42,9 @@ const App: React.FC = () => {
 
     // Graphique : Coût actuel vs Coût avec IA vs Économies générées
     const newChartData: ChartDataPoint[] = [
-      { name: 'Coût actuel', montant: currentCostRepetitive, fill: '#ef4444' }, // Rouge
-      { name: 'Coût avec IA', montant: costWithAi, fill: '#1e40af' }, // Bleu marque
-      { name: 'Économies générées', montant: annualSavings, fill: '#10b981' }, // Vert
+      { name: 'Coût actuel', montant: currentCostRepetitive, fill: '#ef4444' }, // Rouge (Alerte)
+      { name: 'Coût avec IA', montant: costWithAi, fill: '#1a365d' }, // Bleu Nuit (Brand Dark)
+      { name: 'Économies générées', montant: annualSavings, fill: '#38a169' }, // Vert Émeraude (Brand Accent)
     ];
 
     setTimeout(async () => {
@@ -71,14 +71,14 @@ const App: React.FC = () => {
         
         {/* Hero Section */}
         <div className="text-center mb-12 max-w-3xl mx-auto print:hidden">
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-blue-50 text-brand-primary text-xs font-bold uppercase tracking-wider mb-4 border border-blue-100">
+          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-blue-50 text-brand-dark text-xs font-bold uppercase tracking-wider mb-4 border border-blue-100">
              <TrendingUp size={14} /> Simulateur de Performance
           </div>
           <h2 className="text-3xl md:text-5xl font-extrabold text-brand-dark mb-6 leading-tight">
             Calculateur ROI Intelligence Artificielle
           </h2>
           <p className="text-lg text-gray-500 leading-relaxed">
-            Estimez instantanément le ROI potentiel de l'intégration de l'IA générative dans vos processus opérationnels.
+            Estimez instantanément le ROI potentiel de l'intégration de l'automatisation dans vos processus opérationnels.
           </p>
         </div>
 
@@ -101,7 +101,7 @@ const App: React.FC = () => {
             ) : (
               <div className="bg-white/50 backdrop-blur-sm rounded-3xl border-2 border-dashed border-gray-200 p-12 text-center h-full min-h-[400px] flex flex-col justify-center items-center print:hidden">
                 <div className="bg-white p-6 rounded-full shadow-soft mb-6 animate-float">
-                   <Sparkles className="h-12 w-12 text-brand-primary/40" />
+                   <Sparkles className="h-12 w-12 text-brand-accent/40" />
                 </div>
                 <h3 className="text-xl font-bold text-gray-400 mb-2">En attente de configuration</h3>
                 <p className="text-gray-400 max-w-xs mx-auto text-sm">

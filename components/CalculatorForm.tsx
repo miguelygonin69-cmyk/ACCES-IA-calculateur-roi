@@ -31,11 +31,11 @@ const CalculatorForm: React.FC<Props> = ({ onCalculate, isLoading }) => {
   return (
     <div className="bg-white rounded-2xl shadow-card border border-gray-100 p-6 md:p-8 h-full flex flex-col relative overflow-hidden">
       {/* Decorative accent */}
-      <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-brand-primary to-brand-accent"></div>
+      <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-brand-dark to-brand-accent"></div>
 
       <div className="mb-8">
         <h2 className="text-2xl font-bold text-brand-dark mb-2 flex items-center gap-2">
-          <Calculator className="h-6 w-6 text-brand-primary" />
+          <Calculator className="h-6 w-6 text-brand-accent" />
           Paramètres de l'étude
         </h2>
         <p className="text-gray-500 text-sm">Ajustez les curseurs pour refléter la réalité de votre structure.</p>
@@ -54,7 +54,7 @@ const CalculatorForm: React.FC<Props> = ({ onCalculate, isLoading }) => {
               name="industry"
               value={inputs.industry}
               onChange={handleChange}
-              className="w-full pl-4 pr-10 py-3 rounded-xl border border-gray-200 bg-gray-50 focus:ring-2 focus:ring-brand-primary/20 focus:border-brand-primary transition-all cursor-pointer appearance-none font-medium text-gray-700"
+              className="w-full pl-4 pr-10 py-3 rounded-xl border border-gray-200 bg-gray-50 focus:ring-2 focus:ring-brand-accent/20 focus:border-brand-accent transition-all cursor-pointer appearance-none font-medium text-gray-700"
             >
               {Object.values(Industry).map((ind) => (
                 <option key={ind} value={ind}>{ind}</option>
@@ -70,7 +70,7 @@ const CalculatorForm: React.FC<Props> = ({ onCalculate, isLoading }) => {
         <div className="space-y-3 p-4 bg-gray-50 rounded-xl border border-gray-100">
           <div className="flex justify-between items-center">
             <label htmlFor="employees" className="flex items-center gap-2 text-sm font-semibold text-gray-700">
-              <Users size={18} className="text-brand-primary" />
+              <Users size={18} className="text-brand-accent" />
               Nombre d'employés
             </label>
             <div className="flex items-center bg-white border border-gray-200 rounded-lg px-3 py-1 shadow-sm">
@@ -92,7 +92,7 @@ const CalculatorForm: React.FC<Props> = ({ onCalculate, isLoading }) => {
             step="1"
             value={inputs.employees}
             onChange={handleChange}
-            className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-brand-primary"
+            className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-brand-accent"
           />
         </div>
 
@@ -100,7 +100,7 @@ const CalculatorForm: React.FC<Props> = ({ onCalculate, isLoading }) => {
         <div className="space-y-3 p-4 bg-gray-50 rounded-xl border border-gray-100">
            <div className="flex justify-between items-center">
             <label htmlFor="hourlyWage" className="flex items-center gap-2 text-sm font-semibold text-gray-700">
-              <Euro size={18} className="text-brand-primary" />
+              <Euro size={18} className="text-brand-accent" />
               Salaire horaire moyen
             </label>
             <div className="flex items-center bg-white border border-gray-200 rounded-lg px-3 py-1 shadow-sm">
@@ -122,7 +122,7 @@ const CalculatorForm: React.FC<Props> = ({ onCalculate, isLoading }) => {
             step="1"
             value={inputs.hourlyWage}
             onChange={handleChange}
-             className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-brand-primary"
+             className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-brand-accent"
           />
         </div>
 
@@ -130,7 +130,7 @@ const CalculatorForm: React.FC<Props> = ({ onCalculate, isLoading }) => {
         <div className="space-y-3 p-4 bg-gray-50 rounded-xl border border-gray-100">
           <div className="flex justify-between items-center">
             <label htmlFor="hoursRepetitive" className="flex items-center gap-2 text-sm font-semibold text-gray-700">
-               <Clock size={18} className="text-brand-primary" />
+               <Clock size={18} className="text-brand-accent" />
               Tâches répétitives / semaine
             </label>
             <div className="flex items-center bg-white border border-gray-200 rounded-lg px-3 py-1 shadow-sm">
@@ -152,7 +152,7 @@ const CalculatorForm: React.FC<Props> = ({ onCalculate, isLoading }) => {
             step="0.5"
             value={inputs.hoursRepetitive}
             onChange={handleChange}
-             className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-brand-primary"
+             className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-brand-accent"
           />
           <div className="flex items-start gap-2 mt-2">
             <HelpCircle size={14} className="text-gray-400 mt-0.5 shrink-0" />
@@ -165,8 +165,8 @@ const CalculatorForm: React.FC<Props> = ({ onCalculate, isLoading }) => {
         <button
           type="submit"
           disabled={isLoading}
-          className={`w-full py-4 mt-6 rounded-xl font-bold text-white text-lg shadow-lg shadow-brand-primary/30 transition-all flex items-center justify-center gap-3
-            ${isLoading ? 'bg-slate-400 cursor-not-allowed shadow-none' : 'bg-brand-primary hover:bg-blue-800 hover:scale-[1.02] active:scale-[0.98]'}
+          className={`w-full py-4 mt-6 rounded-xl font-bold text-white text-lg shadow-lg shadow-brand-accent/30 transition-all flex items-center justify-center gap-3
+            ${isLoading ? 'bg-slate-400 cursor-not-allowed shadow-none' : 'bg-brand-accent hover:bg-emerald-600 hover:scale-[1.02] active:scale-[0.98]'}
           `}
         >
           {isLoading ? (
