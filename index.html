@@ -1,69 +1,342 @@
 <!DOCTYPE html>
 <html lang="fr">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Calculateur ROI IA - Nexalis Solutions</title>
-    <meta name="description" content="Outil d'estimation de rentabilité IA pour entreprises.">
-    <!-- Tailwind via CDN pour le prototypage rapide, mais sans conflit avec React -->
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
-    <script>
-      tailwind.config = {
-        theme: {
-          extend: {
-            fontFamily: {
-              sans: ['Inter', 'system-ui', 'sans-serif'],
-            },
-            colors: {
-              brand: {
-                dark: '#0f172a',    // Slate 900 - Plus profond, plus premium
-                primary: '#1e40af', // Blue 800 - Confiance
-                accent: '#10b981',  // Emerald 500 - Croissance/Gain
-                light: '#f8fafc',   // Slate 50 - Fond très doux
-                surface: '#ffffff'
-              }
-            },
-            boxShadow: {
-              'soft': '0 4px 20px -2px rgba(0, 0, 0, 0.05)',
-              'card': '0 10px 15px -3px rgba(0, 0, 0, 0.05), 0 4px 6px -2px rgba(0, 0, 0, 0.025)',
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Calculateur ROI - Nexalis Solutions</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+  <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            brand: {
+              dark: '#1a365d',
+              accent: '#38a169',
+              light: '#f7fafc',
             }
           }
         }
       }
-    </script>
-    <style>
-      @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
-      
-      body {
-        font-family: 'Inter', sans-serif;
-      }
-      
-      /* Optimisation pour l'impression du PDF */
-      @media print {
-        @page { margin: 0; }
-        body { margin: 1cm; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
-        .no-print { display: none !important; }
-        .page-break { page-break-before: always; }
-      }
-    </style>
-  <script type="importmap">
-{
-  "imports": {
-    "react": "https://esm.sh/react@^19.2.3",
-    "react-dom/": "https://esm.sh/react-dom@^19.2.3/",
-    "react/": "https://esm.sh/react@^19.2.3/",
-    "@google/genai": "https://esm.sh/@google/genai@^1.38.0",
-    "lucide-react": "https://esm.sh/lucide-react@^0.562.0",
-    "recharts": "https://esm.sh/recharts@^3.7.0",
-    "vite": "https://esm.sh/vite@^7.3.1",
-    "@vitejs/plugin-react": "https://esm.sh/@vitejs/plugin-react@^5.1.2"
-  }
-}
-</script>
+    }
+  </script>
+  <style>
+    @media print {
+      -webkit-print-color-adjust: exact !important;
+      print-color-adjust: exact !important;
+    }
+  </style>
 </head>
-  <body class="bg-brand-light text-slate-800 antialiased selection:bg-brand-primary selection:text-white">
-    <div id="root"></div>
-    <script type="module" src="/index.tsx"></script>
-  </body>
+<body class="bg-brand-light antialiased">
+  <div id="root"></div>
+
+  <script type="text/babel">
+    const { useState } = React;
+
+    // Icône Sparkles (simplifié en SVG inline)
+    const SparklesIcon = ({ className }) => (
+      <svg className={className} fill="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+        <path d="M9.937 15.5A2 2 0 0 0 8.5 14.063l-6.135-1.582a.5.5 0 0 1 0-.962L8.5 9.936A2 2 0 0 0 9.937 8.5l1.582-6.135a.5.5 0 0 1 .963 0L14.063 8.5A2 2 0 0 0 15.5 9.937l6.135 1.582a.5.5 0 0 1 0 .963L15.5 14.063a2 2 0 0 0-1.437 1.437l-1.582 6.135a.5.5 0 0 1-.963 0z"/>
+        <path d="M20 3v4m2-2h-4m-3 11.5a.5.5 0 0 1-.5-.5v-1a.5.5 0 0 0-.5-.5h-1a.5.5 0 0 1 0-1h1a.5.5 0 0 0 .5-.5v-1a.5.5 0 0 1 1 0v1a.5.5 0 0 0 .5.5h1a.5.5 0 0 1 0 1h-1a.5.5 0 0 0-.5.5v1a.5.5 0 0 1-.5.5"/>
+      </svg>
+    );
+
+    function App() {
+      const [formData, setFormData] = useState({
+        companyName: '',
+        employees: '',
+        currentCost: '',
+        industry: 'services'
+      });
+      const [results, setResults] = useState(null);
+      const [aiInsights, setAiInsights] = useState('');
+      const [isLoadingAI, setIsLoadingAI] = useState(false);
+
+      const handleInputChange = (e) => {
+        const { name, value } = e.target;
+        setFormData(prev => ({
+          ...prev,
+          [name]: value
+        }));
+      };
+
+      const calculateROI = () => {
+        const employees = parseInt(formData.employees) || 0;
+        const currentCost = parseFloat(formData.currentCost) || 0;
+        
+        const gainsProductivite = employees * 5000;
+        const reductionCouts = currentCost * 0.3;
+        const gainsTotal = gainsProductivite + reductionCouts;
+        const investissement = 15000;
+        const roi = ((gainsTotal - investissement) / investissement) * 100;
+        const payback = investissement / (gainsTotal / 12);
+        
+        // Coût de l'inaction (perte mensuelle sans IA)
+        const coutInaction = gainsTotal / 12;
+
+        setResults({
+          gainsProductivite,
+          reductionCouts,
+          gainsTotal,
+          investissement,
+          roi,
+          payback,
+          coutInaction
+        });
+
+        // Générer insights IA (simulation)
+        generateAIInsights(formData, {
+          gainsProductivite,
+          reductionCouts,
+          gainsTotal,
+          roi,
+          coutInaction
+        });
+      };
+
+      const generateAIInsights = async (data, metrics) => {
+        setIsLoadingAI(true);
+        // Simulation d'appel API - remplacez par votre vraie intégration Gemini
+        setTimeout(() => {
+          const insights = `**Analyse Stratégique pour ${data.companyName || 'votre entreprise'}**
+
+**Points Critiques :**
+• Avec ${data.employees} employés, vous perdez actuellement ${metrics.coutInaction.toLocaleString('fr-FR')}€/mois en opportunités d'optimisation.
+• Votre secteur (${data.industry}) présente un potentiel d'automatisation de 35-45% des tâches répétitives.
+• Le ROI de ${metrics.roi.toFixed(0)}% est ${metrics.roi > 100 ? 'exceptionnel' : 'très compétitif'} comparé à la moyenne sectorielle (75-120%).
+
+**Recommandations Prioritaires :**
+1. **Court terme (3 mois)** : Déployer l'automatisation sur les processus administratifs → gain immédiat de 15-20h/semaine.
+2. **Moyen terme (6 mois)** : Intégrer l'IA dans la relation client → réduction de 40% du temps de traitement.
+3. **Long terme (12 mois)** : Analyse prédictive pour l'optimisation des ressources → gain de ${(metrics.gainsProductivite * 0.2).toLocaleString('fr-FR')}€ supplémentaires.
+
+**Risque d'Inaction :** En différant cette transformation, vous accumulez une perte d'opportunité de ${(metrics.coutInaction * 12).toLocaleString('fr-FR')}€/an face à vos concurrents déjà équipés.`;
+          
+          setAiInsights(insights);
+          setIsLoadingAI(false);
+        }, 1500);
+      };
+
+      const exportPDF = () => {
+        const element = document.getElementById('results-section');
+        const opt = {
+          margin: [15, 10, 15, 10],
+          filename: `Analyse_ROI_Nexalis_${formData.companyName || 'Entreprise'}_${new Date().toLocaleDateString('fr-FR')}.pdf`,
+          image: { type: 'jpeg', quality: 0.98 },
+          html2canvas: { scale: 2, useCORS: true },
+          jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
+        };
+        html2pdf().set(opt).from(element).save();
+      };
+
+      return (
+        <div className="min-h-screen bg-brand-light">
+          {/* Header Premium */}
+          <header className="bg-brand-dark shadow-lg">
+            <div className="max-w-7xl mx-auto px-6 py-8">
+              <div className="flex items-center gap-3">
+                <SparklesIcon className="w-10 h-10 text-yellow-400" />
+                <div>
+                  <h1 className="text-white font-bold uppercase tracking-tight text-2xl">
+                    NEXALIS SOLUTIONS
+                  </h1>
+                  <p className="text-gray-300 font-medium tracking-wider text-[10px] uppercase">
+                    Conseil en Stratégie Digitale & IA
+                  </p>
+                </div>
+              </div>
+            </div>
+          </header>
+
+          <main className="max-w-7xl mx-auto px-6 py-12">
+            {/* Titre Section */}
+            <div className="mb-12">
+              <h2 className="text-4xl font-bold text-brand-dark mb-3 tracking-tight">
+                Calculateur de Retour sur Investissement
+              </h2>
+              <p className="text-gray-600 text-lg">
+                Évaluez précisément l'impact financier d'une transformation IA sur votre organisation
+              </p>
+            </div>
+
+            {/* Formulaire */}
+            <div className="bg-white rounded-2xl shadow-xl border border-gray-100 p-10 mb-8">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                <div>
+                  <label className="block text-sm font-semibold text-brand-dark mb-3">
+                    Nom de l'entreprise
+                  </label>
+                  <input
+                    type="text"
+                    name="companyName"
+                    value={formData.companyName}
+                    onChange={handleInputChange}
+                    className="w-full px-5 py-3.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-brand-accent focus:border-transparent transition-all shadow-sm"
+                    placeholder="Ex: Acme Corporation"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-semibold text-brand-dark mb-3">
+                    Nombre d'employés
+                  </label>
+                  <input
+                    type="number"
+                    name="employees"
+                    value={formData.employees}
+                    onChange={handleInputChange}
+                    className="w-full px-5 py-3.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-brand-accent focus:border-transparent transition-all shadow-sm"
+                    placeholder="Ex: 50"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-semibold text-brand-dark mb-3">
+                    Budget IT annuel actuel (€)
+                  </label>
+                  <input
+                    type="number"
+                    name="currentCost"
+                    value={formData.currentCost}
+                    onChange={handleInputChange}
+                    className="w-full px-5 py-3.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-brand-accent focus:border-transparent transition-all shadow-sm"
+                    placeholder="Ex: 80000"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-semibold text-brand-dark mb-3">
+                    Secteur d'activité
+                  </label>
+                  <select
+                    name="industry"
+                    value={formData.industry}
+                    onChange={handleInputChange}
+                    className="w-full px-5 py-3.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-brand-accent focus:border-transparent transition-all shadow-sm"
+                  >
+                    <option value="services">Services professionnels</option>
+                    <option value="commerce">Commerce & Distribution</option>
+                    <option value="industrie">Industrie & Manufacturing</option>
+                    <option value="tech">Technologies & Software</option>
+                    <option value="sante">Santé & Médical</option>
+                    <option value="finance">Finance & Assurance</option>
+                  </select>
+                </div>
+              </div>
+
+              <button
+                onClick={calculateROI}
+                className="mt-8 w-full bg-brand-accent hover:bg-green-600 text-white font-bold py-4 px-8 rounded-xl transition-all duration-200 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5"
+              >
+                Calculer le ROI et générer l'analyse IA
+              </button>
+            </div>
+
+            {/* Résultats */}
+            {results && (
+              <div id="results-section" className="space-y-8">
+                {/* Métriques Principales */}
+                <div className="bg-white rounded-2xl shadow-xl border border-gray-100 p-10">
+                  <h3 className="text-2xl font-bold text-brand-dark mb-8 pb-4 border-b-2 border-brand-dark">
+                    Synthèse Financière — {formData.companyName || 'Votre Entreprise'}
+                  </h3>
+
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+                    <div className="bg-gradient-to-br from-green-50 to-emerald-50 p-8 rounded-xl border-l-4 border-brand-accent shadow-md">
+                      <p className="text-sm font-semibold text-gray-600 uppercase tracking-wide mb-2">ROI Première Année</p>
+                      <p className="text-5xl font-bold text-brand-accent">{results.roi.toFixed(0)}%</p>
+                    </div>
+
+                    <div className="bg-gradient-to-br from-blue-50 to-indigo-50 p-8 rounded-xl border-l-4 border-brand-dark shadow-md">
+                      <p className="text-sm font-semibold text-gray-600 uppercase tracking-wide mb-2">Retour sur Investissement</p>
+                      <p className="text-5xl font-bold text-brand-dark">{results.payback.toFixed(1)} <span className="text-2xl">mois</span></p>
+                    </div>
+
+                    <div className="bg-gradient-to-br from-red-50 to-orange-50 p-8 rounded-xl border-l-4 border-red-500 shadow-md">
+                      <p className="text-sm font-semibold text-gray-600 uppercase tracking-wide mb-2">Coût de l'Inaction / Mois</p>
+                      <p className="text-5xl font-bold text-red-600">-{results.coutInaction.toLocaleString('fr-FR')} €</p>
+                    </div>
+                  </div>
+
+                  <div className="bg-gray-50 rounded-xl p-8 space-y-4">
+                    <div className="flex justify-between items-center py-3 border-b border-gray-200">
+                      <span className="text-gray-700 font-medium">Gains de productivité estimés</span>
+                      <span className="text-xl font-bold text-brand-accent">+{results.gainsProductivite.toLocaleString('fr-FR')} €</span>
+                    </div>
+                    <div className="flex justify-between items-center py-3 border-b border-gray-200">
+                      <span className="text-gray-700 font-medium">Réduction des coûts opérationnels</span>
+                      <span className="text-xl font-bold text-brand-accent">+{results.reductionCouts.toLocaleString('fr-FR')} €</span>
+                    </div>
+                    <div className="flex justify-between items-center py-3 border-b border-gray-200">
+                      <span className="text-gray-700 font-medium">Investissement initial</span>
+                      <span className="text-xl font-bold text-gray-700">-{results.investissement.toLocaleString('fr-FR')} €</span>
+                    </div>
+                    <div className="flex justify-between items-center py-4 bg-brand-dark text-white rounded-lg px-4 mt-4">
+                      <span className="font-bold text-lg">Bénéfice Net (An 1)</span>
+                      <span className="text-2xl font-bold">+{(results.gainsTotal - results.investissement).toLocaleString('fr-FR')} €</span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Insights IA */}
+                <div className="bg-gradient-to-br from-brand-dark to-blue-900 rounded-2xl shadow-2xl border border-gray-700 p-10 text-white">
+                  <div className="flex items-center gap-3 mb-6">
+                    <SparklesIcon className="w-8 h-8 text-yellow-400" />
+                    <h3 className="text-2xl font-bold">Analyse Stratégique par IA</h3>
+                  </div>
+                  
+                  {isLoadingAI ? (
+                    <div className="flex items-center gap-3 py-8">
+                      <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-yellow-400"></div>
+                      <p className="text-gray-300">Génération de l'analyse stratégique en cours...</p>
+                    </div>
+                  ) : (
+                    <div className="prose prose-invert max-w-none">
+                      <div className="whitespace-pre-line text-gray-100 leading-relaxed">
+                        {aiInsights}
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                {/* Bouton Export */}
+                <div className="flex justify-center">
+                  <button
+                    onClick={exportPDF}
+                    className="bg-brand-dark hover:bg-blue-900 text-white font-bold py-4 px-12 rounded-xl transition-all duration-200 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 flex items-center gap-3"
+                  >
+                    <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                    </svg>
+                    Télécharger le Rapport Complet (PDF)
+                  </button>
+                </div>
+              </div>
+            )}
+          </main>
+
+          {/* Footer */}
+          <footer className="bg-brand-dark text-white py-8 mt-16">
+            <div className="max-w-7xl mx-auto px-6 text-center">
+              <div className="flex items-center justify-center gap-2 mb-3">
+                <SparklesIcon className="w-6 h-6 text-yellow-400" />
+                <p className="font-bold uppercase tracking-tight">Nexalis Solutions</p>
+              </div>
+              <p className="text-gray-400 text-sm">
+                © {new Date().getFullYear()} Nexalis Solutions. Conseil en Transformation Digitale & Intelligence Artificielle.
+              </p>
+            </div>
+          </footer>
+        </div>
+      );
+    }
+
+    const root = ReactDOM.createRoot(document.getElementById('root'));
+    root.render(<App />);
+  </script>
+</body>
 </html>
