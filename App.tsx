@@ -40,10 +40,11 @@ const App: React.FC = () => {
       costWithAi
     };
 
+    // Graphique : Coût actuel vs Coût avec IA vs Économies générées
     const newChartData: ChartDataPoint[] = [
-      { name: 'Coût Actuel', montant: currentCostRepetitive, fill: '#ef4444' }, // Rouge alerte
-      { name: 'Coût avec IA', montant: costWithAi, fill: '#1e40af' }, // Brand Primary
-      { name: 'Gain Net', montant: annualSavings, fill: '#10b981' }, // Emerald Accent
+      { name: 'Coût actuel', montant: currentCostRepetitive, fill: '#ef4444' }, // Rouge
+      { name: 'Coût avec IA', montant: costWithAi, fill: '#1e40af' }, // Bleu marque
+      { name: 'Économies générées', montant: annualSavings, fill: '#10b981' }, // Vert
     ];
 
     setTimeout(async () => {
@@ -74,7 +75,7 @@ const App: React.FC = () => {
              <TrendingUp size={14} /> Simulateur de Performance
           </div>
           <h2 className="text-3xl md:text-5xl font-extrabold text-brand-dark mb-6 leading-tight">
-            Quel est le véritable coût de vos tâches manuelles ?
+            Calculateur ROI Intelligence Artificielle
           </h2>
           <p className="text-lg text-gray-500 leading-relaxed">
             Estimez instantanément le ROI potentiel de l'intégration de l'IA générative dans vos processus opérationnels.

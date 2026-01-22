@@ -71,7 +71,7 @@ const CalculatorForm: React.FC<Props> = ({ onCalculate, isLoading }) => {
           <div className="flex justify-between items-center">
             <label htmlFor="employees" className="flex items-center gap-2 text-sm font-semibold text-gray-700">
               <Users size={18} className="text-brand-primary" />
-              Effectif concerné
+              Nombre d'employés
             </label>
             <div className="flex items-center bg-white border border-gray-200 rounded-lg px-3 py-1 shadow-sm">
                 <input
@@ -101,7 +101,7 @@ const CalculatorForm: React.FC<Props> = ({ onCalculate, isLoading }) => {
            <div className="flex justify-between items-center">
             <label htmlFor="hourlyWage" className="flex items-center gap-2 text-sm font-semibold text-gray-700">
               <Euro size={18} className="text-brand-primary" />
-              Coût horaire moyen (chargé)
+              Salaire horaire moyen
             </label>
             <div className="flex items-center bg-white border border-gray-200 rounded-lg px-3 py-1 shadow-sm">
                 <input
@@ -111,7 +111,7 @@ const CalculatorForm: React.FC<Props> = ({ onCalculate, isLoading }) => {
                     name="hourlyWage"
                     className="w-12 text-right font-bold text-brand-dark outline-none border-none p-0 text-sm"
                 />
-                <span className="text-xs text-gray-400 ml-1">€/h</span>
+                <span className="text-xs text-gray-400 ml-1">€</span>
             </div>
           </div>
           <input
@@ -157,7 +157,7 @@ const CalculatorForm: React.FC<Props> = ({ onCalculate, isLoading }) => {
           <div className="flex items-start gap-2 mt-2">
             <HelpCircle size={14} className="text-gray-400 mt-0.5 shrink-0" />
             <p className="text-xs text-gray-500 leading-snug">
-              Incluez : Saisie de données, e-mails standards, reporting, copier-coller, recherche d'infos, classement...
+              Par employé (saisie, e-mails, reporting, etc.)
             </p>
           </div>
         </div>
@@ -172,7 +172,7 @@ const CalculatorForm: React.FC<Props> = ({ onCalculate, isLoading }) => {
           {isLoading ? (
              <span className="flex items-center gap-2">Calcul en cours...</span>
           ) : (
-             <>Calculer l'impact <ArrowRight className="h-5 w-5" /></>
+             <>Calculer mon ROI <ArrowRight className="h-5 w-5" /></>
           )}
         </button>
       </form>
