@@ -1,18 +1,20 @@
-import { GoogleGenAI } from "@google/genai";
+import { GoogleGenerativeAI } from "@google/genai";
 import { CalculatorInputs, CalculationResult } from "../types";
-
-const apiKey = process.env.API_KEY || '';
-const ai = new GoogleGenAI({ apiKey });
 
 export const generateStrategicInsight = async (
   inputs: CalculatorInputs,
   results: CalculationResult
 ): Promise<string> => {
+  const apiKey = import.meta.env.VITE_GEMINI_API_KEY || '';
+  
   if (!apiKey) {
     return "Mode démo : Configurez l'API Key pour obtenir une analyse stratégique personnalisée.";
   }
 
   try {
+    const genAI = new GoogleGenerativeAI(apiKey);
+    const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash-exp" });
+
     const prompt = `
       Agis comme un Directeur Stratégie Senior chez McKinsey ou BCG.
       
@@ -41,19 +43,13 @@ export const generateStrategicInsight = async (
 
       Ton style : Expert mais accessible, data-driven, focus sur l'impact business concret.
       Format : Markdown avec **gras** pour les titres, tirets pour les listes. Pas de titre global, commence directement par la section 1.
-      Longueur : 300-400 mots maximum.
+      Longueur : 300-400 mois maximum.
     `;
 
-    const response = await ai.models.generateContent({
-      model: 'gemini-3-flash-preview',
-      contents: prompt,
-      config: {
-        thinkingConfig: { thinkingBudget: 0 },
-        temperature: 0.7,
-      }
-    });
-
-    return response.text || "Analyse en cours...";
+    const result = await model.generateContent(prompt);
+    const response = result.response;
+    return response.text() || "Analyse en cours...";
+    
   } catch (error) {
     console.error("Erreur Gemini:", error);
     return "L'analyse IA n'est pas disponible pour le moment.";
