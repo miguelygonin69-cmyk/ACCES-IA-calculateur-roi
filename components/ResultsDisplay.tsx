@@ -49,138 +49,118 @@ const ResultsDisplay: React.FC<Props> = ({ results, chartData, aiInsight, isAiLo
       return; 
     }
 
-    // Largeur A4 en pixels (210mm à 96 DPI)
-    const A4_WIDTH_PX = 700;
-    
+    // 1. Préparation de l'environnement
+    // On remonte tout en haut pour éviter les bugs de "partie blanche" en haut du PDF
     window.scrollTo(0, 0);
 
-    // Overlay plein écran
-    const overlay = document.createElement('div');
-    overlay.style.cssText = `
-      position: fixed;
-      top: 0;
-      left: 0;
-      width: 100vw;
-      height: 100vh;
-      background: white;
-      z-index: 9999;
-      overflow: auto;
-      padding: 20px;
-    `;
+    // Largeur A4 standard en pixels pour le web (96 DPI)
+    // 210mm ~= 794px. On fixe cette largeur pour que le rendu soit prédictible.
+    const A4_WIDTH_PX = 794; 
 
-    // Conteneur calibré A4
+    // 2. Création du conteneur d'impression
+    // Il doit être en absolute top:0 left:0 pour que html2canvas capture les bonnes coordonnées
     const container = document.createElement('div');
-    container.style.cssText = `
-      width: ${A4_WIDTH_PX}px;
-      margin: 0 auto;
-      background: white;
-      font-family: 'Inter', sans-serif;
-      padding: 30px;
-      box-sizing: border-box;
-    `;
+    container.style.position = 'absolute';
+    container.style.top = '0';
+    container.style.left = '0';
+    container.style.width = `${A4_WIDTH_PX}px`;
+    container.style.zIndex = '9999'; // Par dessus tout
+    container.style.backgroundColor = '#ffffff';
+    container.style.padding = '40px'; // Marges internes du papier
+    container.style.boxSizing = 'border-box';
 
-    // Clone du contenu
+    // 3. Clonage du contenu
     const clone = originalElement.cloneNode(true) as HTMLElement;
-    clone.classList.remove('animate-fade-in', 'md:bg-transparent');
-    clone.style.cssText = 'width: 100%; margin: 0; box-shadow: none;';
     
-    // Forcer grille 3 colonnes
-    const grids = clone.querySelectorAll('.md\\:grid-cols-3');
+    // Nettoyage des styles qui gênent l'impression
+    clone.classList.remove('animate-fade-in', 'md:bg-transparent');
+    clone.style.width = '100%';
+    clone.style.margin = '0';
+    clone.style.boxShadow = 'none';
+    
+    // 4. Forçage du Layout Desktop (Grid 3 colonnes)
+    // On s'assure que même sur un petit écran, le PDF sera généré comme sur un grand écran
+    const grids = clone.querySelectorAll('.grid');
     grids.forEach(el => {
-      (el as HTMLElement).classList.remove('md:grid-cols-3', 'grid-cols-1');
-      (el as HTMLElement).classList.add('grid-cols-3');
-      (el as HTMLElement).style.display = 'grid';
-      (el as HTMLElement).style.gridTemplateColumns = '1fr 1fr 1fr';
-      (el as HTMLElement).style.gap = '12px';
+      const element = el as HTMLElement;
+      // On retire les classes responsives
+      element.classList.remove('md:grid-cols-3', 'lg:grid-cols-12', 'grid-cols-1');
+      // On force la grille selon le contexte (3 colonnes pour les stats)
+      if (element.classList.contains('gap-4')) {
+          element.style.display = 'grid';
+          element.style.gridTemplateColumns = 'repeat(3, 1fr)';
+          element.style.gap = '16px';
+      }
     });
 
-    // Retirer éléments non nécessaires
+    // Masquage des éléments interactifs
     clone.querySelector('#action-toolbar')?.remove();
     clone.querySelector('#cta-section')?.remove();
 
-    // Afficher le header
+    // Affichage du Header spécifique PDF
     const header = clone.querySelector('#report-header');
     if (header) {
       (header as HTMLElement).classList.remove('hidden');
       (header as HTMLElement).style.display = 'block';
     }
 
-    // Conversion zone sombre → blanc (économie encre)
+    // Adaptation des couleurs (Fond sombre -> Fond clair pour économie d'encre)
     const darkBg = clone.querySelector('.bg-brand-dark');
     if (darkBg) {
       (darkBg as HTMLElement).classList.remove('text-white', 'bg-brand-dark');
-      (darkBg as HTMLElement).classList.add('text-slate-900', 'bg-gray-50', 'border', 'border-gray-300');
+      (darkBg as HTMLElement).classList.add('text-slate-900', 'bg-gray-50', 'border', 'border-gray-200');
       darkBg.querySelectorAll('.text-gray-100').forEach(t => {
         (t as HTMLElement).classList.remove('text-gray-100');
         (t as HTMLElement).classList.add('text-slate-700');
       });
+      // La petite lueur décorative
+      const blurEffect = darkBg.querySelector('.blur-3xl');
+      if (blurEffect) blurEffect.remove();
     }
 
-    // Réduire taille graphique pour PDF
+    // Ajustement hauteur graphique
     const chartContainer = clone.querySelector('.h-64');
     if (chartContainer) {
-      (chartContainer as HTMLElement).style.height = '200px';
+      (chartContainer as HTMLElement).style.height = '250px';
     }
 
+    // Injection dans le DOM
     container.appendChild(clone);
-    overlay.appendChild(container);
-    document.body.appendChild(overlay);
+    document.body.appendChild(container);
 
-    // Message de chargement
+    // Feedback utilisateur
     const feedback = document.createElement('div');
-    feedback.style.cssText = `
-      position: fixed;
-      bottom: 30px;
-      right: 30px;
-      background: #1a365d;
-      color: white;
-      padding: 16px 28px;
-      border-radius: 12px;
-      z-index: 10001;
-      font-weight: 600;
-      font-size: 14px;
-      box-shadow: 0 10px 30px rgba(0,0,0,0.3);
-    `;
-    feedback.innerText = "📄 Génération du PDF en cours...";
+    feedback.innerText = "Génération du PDF...";
+    feedback.style.position = 'fixed';
+    feedback.style.top = '50%';
+    feedback.style.left = '50%';
+    feedback.style.transform = 'translate(-50%, -50%)';
+    feedback.style.background = 'rgba(26, 54, 93, 0.9)';
+    feedback.style.color = 'white';
+    feedback.style.padding = '20px 40px';
+    feedback.style.borderRadius = '12px';
+    feedback.style.zIndex = '10000';
     document.body.appendChild(feedback);
 
-    // Attendre le rendu complet
-    await new Promise(resolve => setTimeout(resolve, 2500));
+    // Petite pause pour laisser le DOM se rendre (essentiel pour les graphiques)
+    await new Promise(resolve => setTimeout(resolve, 1000));
 
+    // 5. Configuration html2pdf
     const opt = {
-      margin: [15, 15, 15, 15],
-      filename: `Nexalis_Audit_ROI_${inputs.industry}_${new Date().toLocaleDateString('fr-FR').replace(/\//g, '-')}.pdf`,
-      image: { type: 'jpeg', quality: 0.95 },
+      margin: 0, // Les marges sont gérées par le padding du container
+      filename: `Nexalis_Audit_${inputs.industry.replace(/\s+/g, '_')}.pdf`,
+      image: { type: 'jpeg', quality: 0.98 },
       html2canvas: { 
-        scale: 1.5,
-        useCORS: true,
-        allowTaint: true,
-        logging: false,
-        width: A4_WIDTH_PX + 60,
-        windowWidth: A4_WIDTH_PX + 60,
-        backgroundColor: '#ffffff',
-        removeContainer: false,
-        imageTimeout: 0,
-        onclone: (clonedDoc: Document) => {
-          const svgs = clonedDoc.querySelectorAll('svg');
-          svgs.forEach(svg => {
-            const bbox = svg.getBoundingClientRect();
-            svg.setAttribute('width', bbox.width.toString());
-            svg.setAttribute('height', bbox.height.toString());
-          });
-        }
+        scale: 2, // Meilleure résolution
+        useCORS: true, 
+        scrollY: 0, // Important : force le moteur à commencer en haut
+        windowWidth: A4_WIDTH_PX, // Simule une fenêtre de la bonne largeur
+        width: A4_WIDTH_PX
       },
       jsPDF: { 
         unit: 'mm', 
         format: 'a4', 
-        orientation: 'portrait',
-        compress: true
-      },
-      pagebreak: { 
-        mode: ['avoid-all', 'css', 'legacy'],
-        before: '.page-break-before',
-        after: '.page-break-after',
-        avoid: ['.print:break-inside-avoid', '.no-break']
+        orientation: 'portrait' 
       }
     };
 
@@ -189,10 +169,10 @@ const ResultsDisplay: React.FC<Props> = ({ results, chartData, aiInsight, isAiLo
       await window.html2pdf().set(opt).from(container).save();
     } catch (error) {
       console.error("Erreur PDF:", error);
-      alert("Erreur lors de la génération du PDF. Veuillez réessayer.");
     } finally {
-      document.body.removeChild(overlay);
-      document.body.removeChild(feedback);
+      // Nettoyage
+      if (document.body.contains(container)) document.body.removeChild(container);
+      if (document.body.contains(feedback)) document.body.removeChild(feedback);
       setIsGeneratingPdf(false);
     }
   };
