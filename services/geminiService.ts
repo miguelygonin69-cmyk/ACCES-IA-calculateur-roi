@@ -34,34 +34,27 @@ Ton style : Expert mais accessible, data-driven, focus sur l'impact business con
 Format : Markdown avec **gras** pour les titres, tirets pour les listes. Pas de titre global, commence directement par la section 1.
 Longueur : 300-400 mots maximum.`;
 
-    // Appel via Vercel AI Gateway
-    const response = await fetch('https://api.vercel.com/v1/ai/chat/completions', {
+    // Appel direct à l'API Vercel AI Gateway
+    // Vercel gère automatiquement l'authentification via votre configuration BYOK
+    const response = await fetch('/api/ai/gemini', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${process.env.VERCEL_AI_GATEWAY_TOKEN || ''}`,
       },
       body: JSON.stringify({
-        model: 'google/gemini-2.0-flash-exp',
-        messages: [
-          {
-            role: 'user',
-            content: prompt
-          }
-        ],
+        prompt: prompt,
         temperature: 0.7,
-        max_tokens: 800,
       }),
     });
 
     if (!response.ok) {
-      const error = await response.text();
-      console.error('AI Gateway error:', error);
-      throw new Error('Failed to generate insight');
+      const errorText = await response.text();
+      console.error('AI Gateway error:', errorText);
+      throw new Error(`Failed to generate insight: ${response.status}`);
     }
 
     const data = await response.json();
-    return data.choices[0]?.message?.content || "Analyse en cours...";
+    return data.text || data.content || "Analyse en cours...";
     
   } catch (error) {
     console.error("Erreur lors de l'appel à l'AI Gateway:", error);
