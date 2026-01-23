@@ -61,7 +61,7 @@ const ResultsDisplay: React.FC<Props> = ({ results, chartData, aiInsight, isAiLo
     container.style.width = `${A4_WIDTH_PX}px`;
     container.style.zIndex = '9999';
     container.style.backgroundColor = '#ffffff';
-    container.style.padding = '20px'; // Marges internes réduites pour laisser html2pdf gérer les marges
+    container.style.padding = '20px'; 
     container.style.boxSizing = 'border-box';
 
     // 3. Clonage et nettoyage
@@ -154,7 +154,7 @@ const ResultsDisplay: React.FC<Props> = ({ results, chartData, aiInsight, isAiLo
         format: 'a4', 
         orientation: 'portrait' 
       },
-      // C'est cette option qui empêche de couper les éléments et évite les pages blanches inutiles
+      // Configuration vitale pour éviter les pages blanches et les coupures
       pagebreak: { mode: ['avoid-all', 'css', 'legacy'] }
     };
 

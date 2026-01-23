@@ -1,18 +1,9 @@
-import { GoogleGenAI } from "@google/genai";
 import { CalculatorInputs, CalculationResult } from "../types";
-
-const apiKey = process.env.API_KEY || ''; 
-const ai = new GoogleGenAI({ apiKey });
 
 export const generateStrategicInsight = async (
   inputs: CalculatorInputs,
   results: CalculationResult
 ): Promise<string> => {
-  if (!apiKey) {
-    console.warn("Clé API manquante. Assurez-vous d'avoir défini process.env.API_KEY");
-    return "Configuration requise : La clé API n'est pas détectée. Veuillez configurer votre environnement.";
-  }
-
   try {
     const prompt = `
       Agis comme un Directeur Stratégie Senior chez McKinsey ou BCG.
@@ -45,18 +36,26 @@ export const generateStrategicInsight = async (
       Longueur : 300-400 mots maximum.
     `;
 
-    const response = await ai.models.generateContent({
-      model: 'gemini-2.0-flash-exp', 
-      contents: prompt,
-      config: {
-        temperature: 0.7,
-      }
+    const response = await fetch('/api/gemini', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        prompt,
+        temperature: 0.7
+      })
     });
 
-    return response.text || "Analyse terminée, mais aucune réponse textuelle générée.";
+    if (!response.ok) {
+        throw new Error('Erreur réseau ou API');
+    }
+
+    const data = await response.json();
+    return data.text || "Analyse terminée, mais aucune réponse textuelle générée.";
     
   } catch (error) {
     console.error("Erreur Gemini:", error);
-    return "L'analyse IA n'est pas disponible pour le moment. Vérifiez votre connexion ou votre clé API.";
+    return "L'analyse IA n'est pas disponible pour le moment. Vérifiez votre connexion.";
   }
 };
