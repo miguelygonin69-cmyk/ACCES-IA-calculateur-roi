@@ -149,7 +149,7 @@ const ResultsDisplay: React.FC<Props> = ({ results, chartData, aiInsight, isAiLo
 
     const opt = {
       margin: [15, 15, 15, 15],
-      filename: `Nexalis_Audit_ROI_${inputs.industry}_${new Date().toLocaleDateString('fr-FR').replace(/\//g, '-')}.pdf`,
+      filename: `Nexavia_Audit_ROI_${inputs.industry}_${new Date().toLocaleDateString('fr-FR').replace(/\//g, '-')}.pdf`,
       image: { type: 'jpeg', quality: 0.95 },
       html2canvas: { 
         scale: 1.5,
@@ -198,7 +198,7 @@ const ResultsDisplay: React.FC<Props> = ({ results, chartData, aiInsight, isAiLo
   };
 
   const handleCopy = () => {
-    const text = `Rapport ROI Nexalis Solutions\nSecteur: ${inputs.industry}\nGain annuel estimé: ${formatCurrency(results.annualSavings)}\nAnalyse: ${aiInsight}`;
+    const text = `Rapport ROI Nexavia Solutions\nSecteur: ${inputs.industry}\nGain annuel estimé: ${formatCurrency(results.annualSavings)}\nAnalyse: ${aiInsight}`;
     navigator.clipboard.writeText(text);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
@@ -222,7 +222,7 @@ const ResultsDisplay: React.FC<Props> = ({ results, chartData, aiInsight, isAiLo
         <div className="flex justify-between items-center">
              <div className="flex items-center gap-3">
                  <Sparkles className="h-6 w-6 text-yellow-400 fill-yellow-400" />
-                 <h1 className="text-2xl font-bold text-brand-dark uppercase">Nexalis Solutions</h1>
+                 <h1 className="text-2xl font-bold text-brand-dark uppercase">Nexavia Solutions</h1>
              </div>
             <span className="text-sm text-gray-500 font-medium">Rapport d'opportunité IA</span>
         </div>

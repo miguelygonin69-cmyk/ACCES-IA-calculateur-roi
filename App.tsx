@@ -117,7 +117,7 @@ const App: React.FC = () => {
 
       <footer className="bg-white border-t border-gray-100 py-8 mt-12 print:hidden">
         <div className="container mx-auto px-4 text-center">
-          <p className="text-brand-dark font-bold text-sm mb-1">Nexalis Solutions</p>
+          <p className="text-brand-dark font-bold text-sm mb-1">Nexavia Solutions</p>
           <p className="text-gray-400 text-xs">
             © {new Date().getFullYear()} - Outil d'aide à la décision. Les résultats sont des estimations.
           </p>
