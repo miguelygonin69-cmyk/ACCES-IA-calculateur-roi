@@ -49,11 +49,12 @@ const ResultsDisplay: React.FC<Props> = ({ results, chartData, aiInsight, isAiLo
       return; 
     }
 
-    const A4_WIDTH_PX = 794;
+    // Largeur A4 en pixels (210mm à 96 DPI)
+    const A4_WIDTH_PX = 700;
     
     window.scrollTo(0, 0);
 
-    // Overlay visible
+    // Overlay plein écran
     const overlay = document.createElement('div');
     overlay.style.cssText = `
       position: fixed;
@@ -63,107 +64,124 @@ const ResultsDisplay: React.FC<Props> = ({ results, chartData, aiInsight, isAiLo
       height: 100vh;
       background: white;
       z-index: 9999;
-      display: flex;
-      align-items: flex-start;
-      justify-content: center;
-      padding: 40px;
       overflow: auto;
+      padding: 20px;
     `;
 
-    // Conteneur pour le contenu
+    // Conteneur calibré A4
     const container = document.createElement('div');
     container.style.cssText = `
       width: ${A4_WIDTH_PX}px;
+      margin: 0 auto;
       background: white;
       font-family: 'Inter', sans-serif;
+      padding: 30px;
+      box-sizing: border-box;
     `;
 
-    // Clone
+    // Clone du contenu
     const clone = originalElement.cloneNode(true) as HTMLElement;
     clone.classList.remove('animate-fade-in', 'md:bg-transparent');
-    clone.classList.add('bg-white');
-    clone.style.cssText = 'width: 100%; margin: 0; box-shadow: none; animation: none;';
+    clone.style.cssText = 'width: 100%; margin: 0; box-shadow: none;';
     
     // Forcer grille 3 colonnes
     const grids = clone.querySelectorAll('.md\\:grid-cols-3');
     grids.forEach(el => {
       (el as HTMLElement).classList.remove('md:grid-cols-3', 'grid-cols-1');
       (el as HTMLElement).classList.add('grid-cols-3');
+      (el as HTMLElement).style.display = 'grid';
+      (el as HTMLElement).style.gridTemplateColumns = '1fr 1fr 1fr';
+      (el as HTMLElement).style.gap = '12px';
     });
 
-    // Retirer toolbar et CTA
+    // Retirer éléments non nécessaires
     clone.querySelector('#action-toolbar')?.remove();
     clone.querySelector('#cta-section')?.remove();
 
-    // Afficher header
+    // Afficher le header
     const header = clone.querySelector('#report-header');
     if (header) {
       (header as HTMLElement).classList.remove('hidden');
       (header as HTMLElement).style.display = 'block';
     }
 
-    // Conversion zone sombre
+    // Conversion zone sombre → blanc (économie encre)
     const darkBg = clone.querySelector('.bg-brand-dark');
     if (darkBg) {
       (darkBg as HTMLElement).classList.remove('text-white', 'bg-brand-dark');
-      (darkBg as HTMLElement).classList.add('text-slate-900', 'bg-white', 'border', 'border-gray-200');
+      (darkBg as HTMLElement).classList.add('text-slate-900', 'bg-gray-50', 'border', 'border-gray-300');
       darkBg.querySelectorAll('.text-gray-100').forEach(t => {
         (t as HTMLElement).classList.remove('text-gray-100');
         (t as HTMLElement).classList.add('text-slate-700');
       });
-      darkBg.querySelectorAll('.text-brand-accent').forEach(t => {
-        (t as HTMLElement).classList.add('print-text-brand-dark');
-      });
+    }
+
+    // Réduire taille graphique pour PDF
+    const chartContainer = clone.querySelector('.h-64');
+    if (chartContainer) {
+      (chartContainer as HTMLElement).style.height = '200px';
     }
 
     container.appendChild(clone);
     overlay.appendChild(container);
     document.body.appendChild(overlay);
 
-    // Feedback
+    // Message de chargement
     const feedback = document.createElement('div');
     feedback.style.cssText = `
       position: fixed;
-      bottom: 20px;
-      right: 20px;
+      bottom: 30px;
+      right: 30px;
       background: #1a365d;
       color: white;
-      padding: 16px 24px;
+      padding: 16px 28px;
       border-radius: 12px;
-      z-index: 10000;
+      z-index: 10001;
       font-weight: 600;
-      box-shadow: 0 10px 25px rgba(0,0,0,0.3);
+      font-size: 14px;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.3);
     `;
-    feedback.innerText = "📄 Préparation du PDF...";
+    feedback.innerText = "📄 Génération du PDF en cours...";
     document.body.appendChild(feedback);
 
-    // Attendre rendu complet
-    await new Promise(resolve => setTimeout(resolve, 2000));
+    // Attendre le rendu complet
+    await new Promise(resolve => setTimeout(resolve, 2500));
 
     const opt = {
-      margin: 10,
+      margin: [15, 15, 15, 15],
       filename: `Nexalis_Audit_ROI_${inputs.industry}_${new Date().toLocaleDateString('fr-FR').replace(/\//g, '-')}.pdf`,
-      image: { type: 'jpeg', quality: 0.98 },
+      image: { type: 'jpeg', quality: 0.95 },
       html2canvas: { 
-        scale: 2,
+        scale: 1.5,
         useCORS: true,
         allowTaint: true,
         logging: false,
-        windowWidth: A4_WIDTH_PX,
-        width: A4_WIDTH_PX,
+        width: A4_WIDTH_PX + 60,
+        windowWidth: A4_WIDTH_PX + 60,
         backgroundColor: '#ffffff',
         removeContainer: false,
         imageTimeout: 0,
         onclone: (clonedDoc: Document) => {
-          // Forcer affichage des SVG
           const svgs = clonedDoc.querySelectorAll('svg');
           svgs.forEach(svg => {
-            svg.setAttribute('width', svg.getBoundingClientRect().width.toString());
-            svg.setAttribute('height', svg.getBoundingClientRect().height.toString());
+            const bbox = svg.getBoundingClientRect();
+            svg.setAttribute('width', bbox.width.toString());
+            svg.setAttribute('height', bbox.height.toString());
           });
         }
       },
-      jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
+      jsPDF: { 
+        unit: 'mm', 
+        format: 'a4', 
+        orientation: 'portrait',
+        compress: true
+      },
+      pagebreak: { 
+        mode: ['avoid-all', 'css', 'legacy'],
+        before: '.page-break-before',
+        after: '.page-break-after',
+        avoid: ['.print:break-inside-avoid', '.no-break']
+      }
     };
 
     try {
@@ -171,7 +189,7 @@ const ResultsDisplay: React.FC<Props> = ({ results, chartData, aiInsight, isAiLo
       await window.html2pdf().set(opt).from(container).save();
     } catch (error) {
       console.error("Erreur PDF:", error);
-      alert("Erreur lors de la génération du PDF.");
+      alert("Erreur lors de la génération du PDF. Veuillez réessayer.");
     } finally {
       document.body.removeChild(overlay);
       document.body.removeChild(feedback);
@@ -200,7 +218,7 @@ const ResultsDisplay: React.FC<Props> = ({ results, chartData, aiInsight, isAiLo
         </button>
       </div>
 
-      <div id="report-header" className="hidden mb-8 border-b-2 border-brand-dark pb-4">
+      <div id="report-header" className="hidden mb-8 border-b-2 border-brand-dark pb-4 print:block">
         <div className="flex justify-between items-center">
              <div className="flex items-center gap-3">
                  <Sparkles className="h-6 w-6 text-yellow-400 fill-yellow-400" />
@@ -275,11 +293,11 @@ const ResultsDisplay: React.FC<Props> = ({ results, chartData, aiInsight, isAiLo
         </div>
       </div>
 
-      <div className="bg-brand-dark rounded-2xl p-6 shadow-card text-white relative overflow-hidden print:bg-white print:text-black print:border print:border-gray-200">
-         <div className="absolute -right-10 -top-10 bg-white/5 w-40 h-40 rounded-full blur-3xl"></div>
+      <div className="bg-brand-dark rounded-2xl p-6 shadow-card text-white relative overflow-hidden print:bg-gray-50 print:text-black print:border print:border-gray-300">
+         <div className="absolute -right-10 -top-10 bg-white/5 w-40 h-40 rounded-full blur-3xl print:hidden"></div>
          <div className="relative z-10">
-            <h3 className="flex items-center gap-2 text-brand-accent font-bold mb-4 uppercase text-xs tracking-widest">
-                <Sparkles size={14} className="text-brand-accent" /> Recommandation Stratégique
+            <h3 className="flex items-center gap-2 text-brand-accent font-bold mb-4 uppercase text-xs tracking-widest print:text-brand-dark">
+                <Sparkles size={14} className="text-brand-accent print:text-brand-dark" /> Recommandation Stratégique
             </h3>
             <div className="text-sm md:text-base leading-relaxed text-gray-100 print:text-gray-800 border-l-4 border-brand-accent pl-4">
                 {isAiLoading ? (
@@ -291,7 +309,7 @@ const ResultsDisplay: React.FC<Props> = ({ results, chartData, aiInsight, isAiLo
          </div>
       </div>
 
-      <div className="bg-white p-6 rounded-2xl shadow-soft border border-gray-100 print:break-inside-avoid">
+      <div className="bg-white p-6 rounded-2xl shadow-soft border border-gray-100 print:break-inside-avoid no-break">
         <h3 className="font-bold text-gray-700 mb-6 flex items-center gap-2">
             <Target size={18} className="text-brand-dark" />
             Comparatif des coûts & gains
