@@ -1,27 +1,10 @@
 import React, { useState } from 'react';
 import { CalculationResult, ChartDataPoint, CalculatorInputs } from '../types';
 import {
-  BarChart,
-  Bar,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  ResponsiveContainer,
-  Cell,
+  BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell,
 } from 'recharts';
 import {
-  Clock,
-  TrendingUp,
-  Wallet,
-  Sparkles,
-  Copy,
-  Check,
-  Download,
-  Loader2,
-  AlertTriangle,
-  Target,
-  Calendar,
+  Clock, TrendingUp, Wallet, Sparkles, Copy, Check, Download, Loader2, AlertTriangle, Target, Calendar,
 } from 'lucide-react';
 
 declare global {
@@ -73,68 +56,82 @@ const ResultsDisplay: React.FC<Props> = ({ results, chartData, aiInsight, isAiLo
     });
   };
 
-  // --------------------------- PDF EXPORT (FIX CUT LEFT) ---------------------------
+  // --------- helper : html2pdf (global OU import dynamique) ----------
+  const getHtml2Pdf = async () => {
+    if (window.html2pdf) return window.html2pdf;
+    // import dynamique (vite/webpack)
+    const mod: any = await import('html2pdf.js');
+    return mod?.default ?? mod;
+  };
 
+  // ------------------- EXPORT PDF (ANTI BLANK / ANTI CROP) -------------------
   const handleDownloadPDF = async () => {
     setIsGeneratingPdf(true);
 
+    const STAGE_ID = 'pdf-export-stage';
+
     try {
-      if (!window.html2pdf) {
-        alert("html2pdf n'est pas chargé. Vérifie l'import / le script html2pdf.js.");
-        return;
-      }
+      const original = document.getElementById('results-container');
+      if (!original) return;
 
-      const originalElement = document.getElementById('results-container');
-      if (!originalElement) return;
+      const html2pdf = await getHtml2Pdf();
 
-      // A4 en px (96 DPI)
-      const PX_PER_MM = 96 / 25.4;              // ~3.7795
-      const A4_WIDTH_PX = Math.round(210 * PX_PER_MM); // ~794
-      const PADDING_PX = Math.round(12 * PX_PER_MM);   // ~45 (≈ 12mm)
+      // Nettoyage d’un export précédent
+      document.getElementById(STAGE_ID)?.remove();
 
-      // Nettoyage si un export précédent a laissé un noeud
-      const ROOT_ID = 'pdf-print-root';
-      document.getElementById(ROOT_ID)?.remove();
+      // Dimensions A4 en px (96 dpi)
+      const PX_PER_MM = 96 / 25.4;                 // ~3.7795
+      const A4_W = Math.round(210 * PX_PER_MM);    // ~794
+      const PADDING = Math.round(12 * PX_PER_MM);  // ~45
 
-      // Root d'impression ANCRÉ en (0,0) => plus de rognage à gauche
-      const printRoot = document.createElement('div');
-      printRoot.id = ROOT_ID;
-      printRoot.style.cssText = `
-        position: fixed;
-        top: 0;
+      // 1) scène d’export : ABSOLUTE (pas FIXED) => html2canvas peint correctement
+      const stage = document.createElement('div');
+      stage.id = STAGE_ID;
+      stage.style.cssText = `
+        position: absolute;
         left: 0;
-        width: ${A4_WIDTH_PX}px;
+        top: 0;
+        width: ${A4_W}px;
         background: #ffffff;
         z-index: 999999;
-        padding: ${PADDING_PX}px;
+        padding: ${PADDING}px;
         box-sizing: border-box;
       `;
 
-      // Clone
-      const clone = originalElement.cloneNode(true) as HTMLElement;
+      // 2) clone
+      const clone = original.cloneNode(true) as HTMLElement;
 
-      // On enlève les trucs non nécessaires au PDF
+      // enlever éléments inutiles
       clone.querySelector('#action-toolbar')?.remove();
       clone.querySelector('#cta-section')?.remove();
 
-      // Afficher le header
-      const header = clone.querySelector('#report-header');
+      // montrer le header
+      const header = clone.querySelector('#report-header') as HTMLElement | null;
       if (header) {
-        (header as HTMLElement).classList.remove('hidden');
-        (header as HTMLElement).style.display = 'block';
+        header.classList.remove('hidden');
+        header.style.display = 'block';
       }
 
-      // IMPORTANT : éviter les animations/transforms qui peuvent casser les calculs de bbox
-      clone.classList.remove('animate-fade-in');
-      clone.style.animation = 'none';
-      clone.style.transform = 'none';
+      // IMPORTANT : neutraliser animations/transforms/filters => sinon PDF blanc
+      const nukeCSS = (el: HTMLElement) => {
+        el.style.animation = 'none';
+        el.style.transition = 'none';
+        el.style.transform = 'none';
+        el.style.filter = 'none';
+        el.style.backdropFilter = 'none';
+        el.style.willChange = 'auto';
+      };
+
+      nukeCSS(clone);
+      clone.querySelectorAll<HTMLElement>('*').forEach(nukeCSS);
+
+      // forcer largeur “print”
       clone.style.width = '100%';
       clone.style.margin = '0';
       clone.style.boxShadow = 'none';
 
-      // Forcer la grille 3 colonnes pour PDF
-      const grids = clone.querySelectorAll('.md\\:grid-cols-3');
-      grids.forEach((el) => {
+      // grille 3 colonnes
+      clone.querySelectorAll('.md\\:grid-cols-3').forEach((el) => {
         const h = el as HTMLElement;
         h.classList.remove('md:grid-cols-3', 'grid-cols-1');
         h.classList.add('grid-cols-3');
@@ -143,14 +140,14 @@ const ResultsDisplay: React.FC<Props> = ({ results, chartData, aiInsight, isAiLo
         h.style.gap = '12px';
       });
 
-      // Fix Recharts : donner une hauteur fixe (sinon width/height instables)
+      // Recharts : hauteur fixe
       clone.querySelectorAll('.recharts-responsive-container').forEach((el) => {
         const h = el as HTMLElement;
         h.style.width = '100%';
         h.style.height = '220px';
       });
 
-      // Conversion zone sombre -> clair (si tu veux)
+      // bloc sombre -> clair (optionnel, mais évite texte blanc sur fond blanc si classes manquent)
       clone.querySelectorAll('.bg-brand-dark').forEach((dark) => {
         const d = dark as HTMLElement;
         d.classList.remove('text-white', 'bg-brand-dark');
@@ -161,56 +158,39 @@ const ResultsDisplay: React.FC<Props> = ({ results, chartData, aiInsight, isAiLo
         });
       });
 
-      // Ajout au printRoot
-      printRoot.appendChild(clone);
-      document.body.appendChild(printRoot);
+      stage.appendChild(clone);
+      document.body.appendChild(stage);
 
-      // Feedback visuel
-      const feedback = document.createElement('div');
-      feedback.style.cssText = `
-        position: fixed;
-        bottom: 30px;
-        right: 30px;
-        background: #1a365d;
-        color: white;
-        padding: 16px 28px;
-        border-radius: 12px;
-        z-index: 1000000;
-        font-weight: 600;
-        font-size: 14px;
-        box-shadow: 0 10px 30px rgba(0,0,0,0.3);
-      `;
-      feedback.innerText = '📄 Génération du PDF en cours...';
-      document.body.appendChild(feedback);
+      // attendre fonts + layout
+      // @ts-ignore
+      if (document.fonts?.ready) await document.fonts.ready;
+      await new Promise((r) => setTimeout(r, 300));
 
-      // Attendre fonts + layout stable
-      // (sur certains environnements, document.fonts n'existe pas)
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const fonts = (document as any).fonts;
-      if (fonts?.ready) await fonts.ready;
-      await new Promise((r) => setTimeout(r, 600));
+      // sanity check (si 0 => PDF blanc)
+      const w = stage.scrollWidth;
+      const h = stage.scrollHeight;
+      if (!w || !h) throw new Error(`Stage size invalid: ${w}x${h}`);
 
-      // Options : on NE FORCE PAS windowWidth/width avec un conteneur centré (ici il est à left:0)
       const filename = `Nexalis_Audit_ROI_${inputs.industry}_${new Date()
         .toLocaleDateString('fr-FR')
         .replace(/\//g, '-')}.pdf`;
 
       const opt = {
-        margin: [10, 10, 10, 10], // mm
+        margin: 10, // mm
         filename,
         image: { type: 'jpeg', quality: 0.98 },
         html2canvas: {
-          scale: 2, // net sans être énorme
+          scale: 1.35,            // évite canvas gigantesque => évite pages blanches
           useCORS: true,
           allowTaint: true,
-          logging: false,
           backgroundColor: '#ffffff',
+          logging: false,
           scrollX: 0,
           scrollY: 0,
-          // IMPORTANT : capturer toute la hauteur
-          windowHeight: printRoot.scrollHeight,
+          windowWidth: w,
+          windowHeight: Math.min(h, 12000), // garde-fou (canvas trop haut = blanc sur certains env)
           onclone: (doc: Document) => {
-            // sécurise les SVG (Recharts)
+            // solidifier les SVG
             doc.querySelectorAll('svg').forEach((svg) => {
               try {
                 const box = (svg as SVGSVGElement).getBBox();
@@ -228,24 +208,15 @@ const ResultsDisplay: React.FC<Props> = ({ results, chartData, aiInsight, isAiLo
           orientation: 'portrait',
           compress: true,
         },
-        // éviter "avoid-all" qui crée des pages quasi vides
-        pagebreak: {
-          mode: ['css', 'legacy'],
-          avoid: ['.no-break', '.print\\:break-inside-avoid'],
-        },
+        pagebreak: { mode: ['css', 'legacy'] },
       };
 
-      await window.html2pdf().set(opt).from(printRoot).save();
-
-      // cleanup
-      document.body.removeChild(printRoot);
-      document.body.removeChild(feedback);
-    } catch (error) {
-      console.error('Erreur PDF:', error);
-      alert('Erreur lors de la génération du PDF. Veuillez réessayer.');
+      await html2pdf().set(opt).from(stage).save();
+    } catch (e) {
+      console.error('PDF export error:', e);
+      alert("PDF blanc : le rendu a échoué. Dis-moi si tu es dans un iframe/sandbox, on adaptera (solution alternative : print window).");
     } finally {
-      // au cas où
-      document.getElementById('pdf-print-root')?.remove();
+      document.getElementById(STAGE_ID)?.remove();
       setIsGeneratingPdf(false);
     }
   };
@@ -262,7 +233,6 @@ Analyse: ${aiInsight ?? ''}`;
 
   return (
     <div id="results-container" className="space-y-6 animate-fade-in bg-white md:bg-transparent relative">
-
       <div id="action-toolbar" className="flex justify-end gap-3 print:hidden mb-2">
         <button onClick={handleCopy} className="flex items-center gap-2 px-3 py-2 text-sm font-medium text-gray-600 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors shadow-sm">
           {copied ? <Check size={16} className="text-green-600" /> : <Copy size={16} />}
@@ -389,15 +359,8 @@ Analyse: ${aiInsight ?? ''}`;
 
       <div id="cta-section" className="mt-8 text-center bg-brand-accent/5 rounded-xl p-8 border border-brand-accent/10 print:hidden">
         <h4 className="font-bold text-brand-dark text-lg mb-2">Transformez ce potentiel en réalité</h4>
-        <p className="text-gray-600 mb-6 max-w-lg mx-auto">
-          Ces chiffres sont théoriques. Pour une analyse fine de vos process et une feuille de route d'implémentation, parlons-en.
-        </p>
-        <a
-          href="https://calendly.com"
-          target="_blank"
-          rel="noopener noreferrer"
-          className="inline-flex items-center gap-2 bg-brand-accent hover:bg-emerald-600 text-white font-semibold py-3 px-8 rounded-full transition-all shadow-lg hover:shadow-xl hover:-translate-y-1"
-        >
+        <p className="text-gray-600 mb-6 max-w-lg mx-auto">Ces chiffres sont théoriques. Pour une analyse fine de vos process et une feuille de route d'implémentation, parlons-en.</p>
+        <a href="https://calendly.com" target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-2 bg-brand-accent hover:bg-emerald-600 text-white font-semibold py-3 px-8 rounded-full transition-all shadow-lg hover:shadow-xl hover:-translate-y-1">
           <Calendar size={18} />
           Réserver un appel découverte
         </a>
