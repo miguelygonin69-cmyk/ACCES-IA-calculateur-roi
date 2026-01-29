@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { CalculationResult, ChartDataPoint, CalculatorInputs } from '../types';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from 'recharts';
-import { Clock, TrendingUp, Wallet, Sparkles, Copy, Check, Download, Loader2, AlertTriangle, Target, Calendar } from 'lucide-react';
+import { Clock, TrendingUp, Wallet, Sparkles, Copy, Check, Download, Loader2, AlertTriangle, Target, Calendar, ArrowRight } from 'lucide-react';
 
 interface Props {
   results: CalculationResult;
@@ -22,6 +22,62 @@ const ResultsDisplay: React.FC<Props> = ({ results, chartData, aiInsight, isAiLo
 
   const formatNumber = (val: number) => 
     new Intl.NumberFormat('fr-FR', { maximumFractionDigits: 0 }).format(val);
+
+  // Fonction utilitaire pour parser le markdown simple en éléments React stylisés
+  const renderFormattedText = (text: string) => {
+    if (!text) return null;
+    
+    // Séparer par lignes mais garder les sauts de ligne pour l'analyse
+    const lines = text.split('\n');
+    
+    return lines.map((line, index) => {
+      // Titres H2 (## Titre)
+      if (line.trim().startsWith('##')) {
+        return (
+          <h4 key={index} className="text-brand-accent font-bold text-lg mt-6 mb-3 flex items-center gap-2 border-b border-white/10 pb-2">
+            {line.replace(/##/g, '').trim()}
+          </h4>
+        );
+      }
+      
+      // Listes à puces (- Item)
+      if (line.trim().startsWith('-')) {
+        const content = line.trim().substring(1).trim();
+        // Gestion du gras (**Gras**)
+        const parts = content.split(/(\*\*.*?\*\*)/g);
+        
+        return (
+          <div key={index} className="flex items-start gap-3 mb-3 pl-2 group">
+            <span className="mt-1.5 w-1.5 h-1.5 rounded-full bg-brand-accent shrink-0 group-hover:scale-150 transition-transform"></span>
+            <p className="text-gray-300 text-sm leading-relaxed">
+              {parts.map((part, i) => {
+                if (part.startsWith('**') && part.endsWith('**')) {
+                  return <strong key={i} className="text-white font-semibold">{part.replace(/\*\*/g, '')}</strong>;
+                }
+                return part;
+              })}
+            </p>
+          </div>
+        );
+      }
+
+      // Paragraphes normaux (sauter les lignes vides excessives)
+      if (line.trim() === '') return <div key={index} className="h-2"></div>;
+
+      // Gestion du gras dans les paragraphes standards
+      const parts = line.split(/(\*\*.*?\*\*)/g);
+      return (
+        <p key={index} className="text-gray-300 text-sm leading-relaxed mb-2">
+           {parts.map((part, i) => {
+                if (part.startsWith('**') && part.endsWith('**')) {
+                  return <strong key={i} className="text-white font-semibold">{part.replace(/\*\*/g, '')}</strong>;
+                }
+                return part;
+           })}
+        </p>
+      );
+    });
+  };
 
   const handleDownloadPDF = async () => {
     setIsGeneratingPdf(true);
@@ -98,11 +154,32 @@ const ResultsDisplay: React.FC<Props> = ({ results, chartData, aiInsight, isAiLo
        if (title) title.classList.remove('text-brand-accent');
        if (title) title.classList.add('text-brand-dark');
        
-       const text = aiSection.querySelector('.whitespace-pre-wrap');
-       if (text) {
-         (text as HTMLElement).classList.remove('text-gray-100');
-         (text as HTMLElement).classList.add('text-slate-800');
-       }
+       // Note: Since we are parsing manually now, the PDF generation might lose styles if we rely only on class changes.
+       // However, html2pdf should capture the DOM state. 
+       // Just ensuring text colors are readable.
+       const textElements = aiSection.querySelectorAll('p, div, span, li');
+       textElements.forEach(el => {
+           if (el.classList.contains('text-gray-300')) {
+             el.classList.remove('text-gray-300');
+             el.classList.add('text-slate-600');
+           }
+           if (el.classList.contains('text-white')) {
+             el.classList.remove('text-white');
+             el.classList.add('text-slate-900');
+           }
+       });
+       
+       const strongs = aiSection.querySelectorAll('strong');
+       strongs.forEach(el => {
+            el.classList.remove('text-white');
+            el.classList.add('text-brand-dark');
+       });
+
+       const h4s = aiSection.querySelectorAll('h4');
+       h4s.forEach(el => {
+            el.classList.remove('text-brand-accent', 'border-white/10');
+            el.classList.add('text-brand-primary', 'border-gray-200');
+       });
     }
 
     // Réduire taille graphique pour PDF
@@ -293,26 +370,30 @@ const ResultsDisplay: React.FC<Props> = ({ results, chartData, aiInsight, isAiLo
       </div>
 
       {/* AI STRATEGIC ANALYSIS SECTION */}
-      <div id="ai-section" className="bg-brand-dark rounded-2xl p-6 md:p-8 shadow-card text-white relative overflow-hidden transition-all duration-300">
-         <div className="absolute -right-20 -top-20 bg-brand-accent/20 w-80 h-80 rounded-full blur-3xl pointer-events-none"></div>
+      <div id="ai-section" className="bg-brand-dark rounded-2xl p-6 md:p-8 shadow-card text-white relative overflow-hidden transition-all duration-300 border border-brand-dark/50">
+         {/* Background Effect */}
+         <div className="absolute -right-20 -top-20 bg-brand-accent/10 w-96 h-96 rounded-full blur-3xl pointer-events-none"></div>
          
          <div className="relative z-10">
-            <h3 className="flex items-center gap-3 text-brand-accent font-bold mb-6 uppercase text-sm tracking-widest">
-                <Sparkles size={16} className="text-brand-accent animate-pulse" /> Analyse Stratégique & Recommandations
-            </h3>
+            <div className="flex items-center justify-between mb-6 border-b border-white/10 pb-4">
+                <h3 className="flex items-center gap-3 text-brand-accent font-bold uppercase text-sm tracking-widest">
+                    <Sparkles size={16} className="text-brand-accent" /> Analyse Stratégique & Recommandations
+                </h3>
+                <span className="text-xs font-mono text-gray-500 bg-white/5 px-2 py-1 rounded">
+                    IA Model: Gemini 2.0 Flash
+                </span>
+            </div>
 
             {isAiLoading ? (
                 <div className="flex flex-col items-center justify-center py-12 space-y-4">
                     <Loader2 size={48} className="animate-spin text-brand-accent" />
-                    <p className="text-gray-300 animate-pulse text-center max-w-md">
-                        Notre IA analyse votre profil ({inputs.industry}) et génère une stratégie sur-mesure...
+                    <p className="text-gray-300 animate-pulse text-center max-w-md text-sm font-medium">
+                        Notre IA analyse les données du secteur {inputs.industry} pour générer votre feuille de route...
                     </p>
                 </div>
             ) : aiInsight ? (
-                <div className="prose prose-invert max-w-none">
-                    <div className="whitespace-pre-wrap text-gray-100 font-light leading-relaxed">
-                        {aiInsight}
-                    </div>
+                <div className="animate-fade-in">
+                    {renderFormattedText(aiInsight)}
                 </div>
             ) : (
                 <div className="text-center py-8 text-gray-400 text-sm">
