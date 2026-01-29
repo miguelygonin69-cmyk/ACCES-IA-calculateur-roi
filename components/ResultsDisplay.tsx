@@ -1,12 +1,12 @@
 import React, { useState } from 'react';
-import { CalculationResult, ChartDataPoint, CalculatorInputs } from '../types';
+import { CalculationResult, ChartDataPoint, CalculatorInputs, StrategicInsight } from '../types';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from 'recharts';
-import { Clock, TrendingUp, Wallet, Sparkles, Copy, Check, Download, Loader2, AlertTriangle, Target, Calendar } from 'lucide-react';
+import { Clock, TrendingUp, Wallet, Sparkles, Copy, Check, Download, Loader2, AlertTriangle, Target, Calendar, Lightbulb, Rocket, ArrowUpRight, BarChart3 } from 'lucide-react';
 
 interface Props {
   results: CalculationResult;
   chartData: ChartDataPoint[];
-  aiInsight: string | null;
+  aiInsight: StrategicInsight | null;
   isAiLoading: boolean;
   inputs: CalculatorInputs;
 }
@@ -22,23 +22,6 @@ const ResultsDisplay: React.FC<Props> = ({ results, chartData, aiInsight, isAiLo
 
   const formatNumber = (val: number) => 
     new Intl.NumberFormat('fr-FR', { maximumFractionDigits: 0 }).format(val);
-
-  const renderStructuredAnalysis = (text: string) => {
-    if (!text) return null;
-    return text.split('\n').map((line, i) => {
-      if (line.trim() === '') return <div key={i} className="h-2" />;
-      
-      const parts = line.split('**');
-      return (
-        <div key={i} className={`mb-1 ${line.trim().startsWith('-') ? 'pl-4 relative' : ''}`}>
-           {line.trim().startsWith('-') && <span className="absolute left-0 top-2 w-1.5 h-1.5 bg-brand-accent rounded-full opacity-70"></span>}
-           {parts.map((part, j) => 
-             j % 2 === 1 ? <strong key={j} className="text-brand-accent font-bold">{part}</strong> : <span key={j}>{part.replace(/^- /, '')}</span>
-           )}
-        </div>
-      );
-    });
-  };
 
   const handleDownloadPDF = async () => {
     setIsGeneratingPdf(true);
@@ -84,7 +67,7 @@ const ResultsDisplay: React.FC<Props> = ({ results, chartData, aiInsight, isAiLo
     clone.classList.remove('animate-fade-in', 'md:bg-transparent');
     clone.style.cssText = 'width: 100%; margin: 0; box-shadow: none;';
     
-    // Forcer grille 3 colonnes
+    // Forcer grille 3 colonnes pour les KPIs
     const grids = clone.querySelectorAll('.md\\:grid-cols-3');
     grids.forEach(el => {
       (el as HTMLElement).classList.remove('md:grid-cols-3', 'grid-cols-1');
@@ -93,6 +76,13 @@ const ResultsDisplay: React.FC<Props> = ({ results, chartData, aiInsight, isAiLo
       (el as HTMLElement).style.gridTemplateColumns = '1fr 1fr 1fr';
       (el as HTMLElement).style.gap = '12px';
     });
+    
+    // Gestion des cartes de recommandation en PDF
+    const recGrid = clone.querySelector('.md\\:grid-cols-2');
+    if (recGrid) {
+        (recGrid as HTMLElement).style.display = 'block'; // Empiler pour le PDF ou garder grid
+        (recGrid as HTMLElement).style.gridTemplateColumns = '1fr 1fr';
+    }
 
     // Retirer éléments non nécessaires
     clone.querySelector('#action-toolbar')?.remove();
@@ -105,15 +95,27 @@ const ResultsDisplay: React.FC<Props> = ({ results, chartData, aiInsight, isAiLo
       (header as HTMLElement).style.display = 'block';
     }
 
-    // Conversion zone sombre → blanc (économie encre)
-    const darkBg = clone.querySelector('.bg-brand-dark');
-    if (darkBg) {
-      (darkBg as HTMLElement).classList.remove('text-white', 'bg-brand-dark');
-      (darkBg as HTMLElement).classList.add('text-slate-900', 'bg-gray-50', 'border', 'border-gray-300');
-      darkBg.querySelectorAll('.text-gray-100').forEach(t => {
-        (t as HTMLElement).classList.remove('text-gray-100');
-        (t as HTMLElement).classList.add('text-slate-700');
-      });
+    // Conversion pour impression (textes clairs sur fonds sombres)
+    const aiSection = clone.querySelector('#ai-section');
+    if (aiSection) {
+       (aiSection as HTMLElement).classList.remove('bg-brand-dark', 'text-white');
+       (aiSection as HTMLElement).classList.add('bg-white', 'text-slate-900', 'border', 'border-gray-200');
+       
+       const title = aiSection.querySelector('h3');
+       if (title) title.classList.remove('text-brand-accent');
+       if (title) title.classList.add('text-brand-dark');
+
+       const badges = aiSection.querySelectorAll('.bg-brand-light\\/10');
+       badges.forEach(b => {
+         (b as HTMLElement).classList.remove('bg-brand-light/10', 'text-brand-accent');
+         (b as HTMLElement).classList.add('bg-gray-100', 'text-brand-dark');
+       });
+       
+       const cards = aiSection.querySelectorAll('.bg-white\\/5');
+       cards.forEach(c => {
+         (c as HTMLElement).classList.remove('bg-white/5', 'hover:bg-white/10');
+         (c as HTMLElement).classList.add('bg-gray-50', 'border', 'border-gray-200');
+       });
     }
 
     // Réduire taille graphique pour PDF
@@ -148,7 +150,7 @@ const ResultsDisplay: React.FC<Props> = ({ results, chartData, aiInsight, isAiLo
     await new Promise(resolve => setTimeout(resolve, 2500));
 
     const opt = {
-      margin: [15, 15, 15, 15],
+      margin: [10, 10, 10, 10],
       filename: `Acces_IA_Audit_ROI_${inputs.industry}_${new Date().toLocaleDateString('fr-FR').replace(/\//g, '-')}.pdf`,
       image: { type: 'jpeg', quality: 0.95 },
       html2canvas: { 
@@ -189,7 +191,7 @@ const ResultsDisplay: React.FC<Props> = ({ results, chartData, aiInsight, isAiLo
       await window.html2pdf().set(opt).from(container).save();
     } catch (error) {
       console.error("Erreur PDF:", error);
-      alert("Erreur lors de la génération du PDF. Veuillez réessayer.");
+      alert("Erreur lors de la génération du PDF.");
     } finally {
       document.body.removeChild(overlay);
       document.body.removeChild(feedback);
@@ -198,7 +200,7 @@ const ResultsDisplay: React.FC<Props> = ({ results, chartData, aiInsight, isAiLo
   };
 
   const handleCopy = () => {
-    const text = `Rapport ROI Acces IA\nSecteur: ${inputs.industry}\nGain annuel estimé: ${formatCurrency(results.annualSavings)}\nAnalyse: ${aiInsight}`;
+    const text = `Rapport ROI Acces IA - ${inputs.industry}\nGain estimé: ${formatCurrency(results.annualSavings)}\n\nSynthèse:\n${aiInsight?.summary || 'N/A'}`;
     navigator.clipboard.writeText(text);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
@@ -207,6 +209,7 @@ const ResultsDisplay: React.FC<Props> = ({ results, chartData, aiInsight, isAiLo
   return (
     <div id="results-container" className="space-y-6 animate-fade-in bg-white md:bg-transparent relative">
       
+      {/* Toolbar */}
       <div id="action-toolbar" className="flex justify-end gap-3 print:hidden mb-2">
         <button onClick={handleCopy} className="flex items-center gap-2 px-3 py-2 text-sm font-medium text-gray-600 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors shadow-sm">
           {copied ? <Check size={16} className="text-green-600" /> : <Copy size={16} />}
@@ -218,33 +221,39 @@ const ResultsDisplay: React.FC<Props> = ({ results, chartData, aiInsight, isAiLo
         </button>
       </div>
 
+      {/* Header Print */}
       <div id="report-header" className="hidden mb-8 border-b-2 border-brand-dark pb-4 print:block">
         <div className="flex justify-between items-center">
              <div className="flex items-center gap-3">
-                 {/* Logo style "Pépite d'or" sans fond - Couleur Bleu Nuit #1a365d */}
-                 <Sparkles className="h-6 w-6 text-[#1a365d] fill-[#1a365d]" />
+                 <Sparkles className="h-6 w-6 text-brand-dark fill-brand-dark" />
                  <h1 className="text-2xl font-bold text-brand-dark uppercase">Acces IA</h1>
              </div>
-            <span className="text-sm text-gray-500 font-medium">Rapport d'opportunité IA</span>
+            <div className="text-right">
+                <span className="block text-sm text-gray-500 font-medium">AUDIT DE PERFORMANCE & IA</span>
+                <span className="text-xs text-gray-400">{new Date().toLocaleDateString('fr-FR')}</span>
+            </div>
         </div>
-        <div className="mt-4 text-sm text-gray-600">
-            Audit généré le {new Date().toLocaleDateString('fr-FR')} pour une entreprise du secteur <b>{inputs.industry}</b> ({inputs.employees} employés).
+        <div className="mt-4 text-sm text-gray-600 bg-gray-50 p-3 rounded-lg border border-gray-100">
+            Entreprise du secteur <b>{inputs.industry}</b> ({inputs.employees} employés) | Salaire moyen: {inputs.hourlyWage}€/h
         </div>
       </div>
 
+      {/* Alert Cost */}
       <div className="bg-orange-50 border border-orange-100 rounded-xl p-4 flex items-start gap-4 shadow-sm">
         <div className="bg-orange-100 p-2 rounded-lg shrink-0">
              <AlertTriangle className="text-orange-600 h-6 w-6" />
         </div>
         <div>
-            <h4 className="font-bold text-orange-900 text-sm uppercase tracking-wide mb-1">Coût de l'inaction</h4>
+            <h4 className="font-bold text-orange-900 text-sm uppercase tracking-wide mb-1">Opportunité Immédiate</h4>
             <p className="text-orange-800 text-sm leading-relaxed">
-                Sans modernisation, vos processus actuels vous coûtent environ <span className="font-bold underline decoration-orange-300 decoration-2">{formatCurrency(monthlyLoss)} chaque mois</span>.
+                L'optimisation de vos processus permettrait de réallouer <span className="font-bold underline decoration-orange-300 decoration-2">{formatCurrency(monthlyLoss)} chaque mois</span> vers des activités à plus forte valeur ajoutée.
             </p>
         </div>
       </div>
 
+      {/* KPI Grid */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        {/* KPI 1 */}
         <div className="bg-white p-5 rounded-2xl shadow-soft border border-gray-100 flex flex-col justify-between h-full">
             <div className="flex items-start justify-between mb-4">
                 <div>
@@ -261,11 +270,12 @@ const ResultsDisplay: React.FC<Props> = ({ results, chartData, aiInsight, isAiLo
             <p className="text-xs text-gray-400 mt-2">Heures économisées / an</p>
         </div>
 
+        {/* KPI 2 */}
         <div className="bg-white p-5 rounded-2xl shadow-soft border border-gray-100 ring-2 ring-brand-accent/10 flex flex-col justify-between h-full relative overflow-hidden">
             <div className="absolute top-0 right-0 w-16 h-16 bg-brand-accent/10 rounded-bl-full -mr-4 -mt-4"></div>
             <div className="flex items-start justify-between mb-4 relative z-10">
                 <div>
-                    <p className="text-xs font-bold text-brand-accent uppercase tracking-wider">Économies Annuelles</p>
+                    <p className="text-xs font-bold text-brand-accent uppercase tracking-wider">Gain Annuel</p>
                     <p className="text-2xl font-extrabold text-brand-accent mt-1">{formatCurrency(results.annualSavings)}</p>
                 </div>
                 <div className="bg-green-50 p-2 rounded-lg">
@@ -273,14 +283,15 @@ const ResultsDisplay: React.FC<Props> = ({ results, chartData, aiInsight, isAiLo
                 </div>
             </div>
              <p className="text-xs text-green-700/80 mt-auto bg-green-50 inline-block px-2 py-1 rounded font-medium self-start">
-                + Impact marge immédiat
+                + Impact marge direct
             </p>
         </div>
 
+        {/* KPI 3 */}
         <div className="bg-white p-5 rounded-2xl shadow-soft border border-gray-100 flex flex-col justify-between h-full">
              <div className="flex items-start justify-between mb-4">
                 <div>
-                    <p className="text-xs font-bold text-gray-400 uppercase tracking-wider">ROI 3 Ans</p>
+                    <p className="text-xs font-bold text-gray-400 uppercase tracking-wider">ROI estimé 3 Ans</p>
                     <p className="text-2xl font-extrabold text-brand-dark mt-1">{formatCurrency(results.threeYearRoi)}</p>
                 </div>
                 <div className="bg-indigo-50 p-2 rounded-lg">
@@ -290,30 +301,116 @@ const ResultsDisplay: React.FC<Props> = ({ results, chartData, aiInsight, isAiLo
             <div className="w-full bg-gray-100 rounded-full h-1.5 mt-2">
                 <div className="bg-indigo-600 h-1.5 rounded-full" style={{ width: '100%' }}></div>
             </div>
-            <p className="text-xs text-gray-400 mt-2">Estimation du ROI sur 3 ans</p>
+            <p className="text-xs text-gray-400 mt-2">Projection moyen terme</p>
         </div>
       </div>
 
-      <div className="bg-brand-dark rounded-2xl p-6 shadow-card text-white relative overflow-hidden print:bg-gray-50 print:text-black print:border print:border-gray-300">
-         <div className="absolute -right-10 -top-10 bg-white/5 w-40 h-40 rounded-full blur-3xl print:hidden"></div>
+      {/* AI STRATEGIC ANALYSIS SECTION */}
+      <div id="ai-section" className="bg-brand-dark rounded-2xl p-6 md:p-8 shadow-card text-white relative overflow-hidden transition-all duration-300">
+         <div className="absolute -right-20 -top-20 bg-brand-accent/20 w-80 h-80 rounded-full blur-3xl pointer-events-none"></div>
+         
          <div className="relative z-10">
-            <h3 className="flex items-center gap-2 text-brand-accent font-bold mb-4 uppercase text-xs tracking-widest print:text-brand-dark">
-                <Sparkles size={14} className="text-brand-accent print:text-brand-dark" /> Recommandation Stratégique
+            <h3 className="flex items-center gap-3 text-brand-accent font-bold mb-6 uppercase text-sm tracking-widest">
+                <Sparkles size={16} className="text-brand-accent animate-pulse" /> Analyse Stratégique & Recommandations
             </h3>
-            <div className="text-sm md:text-base leading-relaxed text-gray-100 print:text-gray-800 border-l-4 border-brand-accent pl-4">
-                {isAiLoading ? (
-                    <span className="animate-pulse italic">Analyse de vos données en cours par nos modèles...</span>
-                ) : (
-                    renderStructuredAnalysis(aiInsight || "") || "Génération de l'analyse..."
-                )}
-            </div>
+
+            {isAiLoading ? (
+                <div className="flex flex-col items-center justify-center py-12 space-y-4">
+                    <Loader2 size={48} className="animate-spin text-brand-accent" />
+                    <p className="text-gray-300 animate-pulse text-center max-w-md">
+                        Notre IA analyse votre profil ({inputs.industry}) et génère une stratégie sur-mesure...
+                    </p>
+                </div>
+            ) : aiInsight ? (
+                <div className="space-y-8 animate-fade-in">
+                    
+                    {/* Executive Summary */}
+                    <div className="bg-white/5 border border-white/10 rounded-xl p-5 backdrop-blur-sm">
+                        <p className="text-lg leading-relaxed text-gray-100 font-light italic">
+                            "{aiInsight.summary}"
+                        </p>
+                    </div>
+
+                    {/* Recommendations Grid */}
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                        {aiInsight.recommendations.map((rec, idx) => (
+                            <div key={idx} className="bg-white/5 border border-white/10 rounded-xl p-5 hover:bg-white/10 transition-colors group">
+                                <div className="flex items-center gap-3 mb-3">
+                                    <div className="bg-brand-accent/20 p-2 rounded-lg text-brand-accent group-hover:scale-110 transition-transform">
+                                        {idx === 0 ? <Rocket size={18} /> : idx === 1 ? <Target size={18} /> : <Lightbulb size={18} />}
+                                    </div>
+                                    <h4 className="font-bold text-sm text-gray-100 line-clamp-1" title={rec.title}>{rec.title}</h4>
+                                </div>
+                                <p className="text-xs text-gray-400 mb-3 min-h-[40px] leading-relaxed">{rec.detail}</p>
+                                <div className="flex items-center gap-1 text-xs font-semibold text-brand-accent">
+                                    <ArrowUpRight size={12} />
+                                    <span>Impact: {rec.impact}</span>
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+
+                    {/* Roadmap & Trends */}
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6 pt-4 border-t border-white/10">
+                        {/* Roadmap Column */}
+                        <div className="md:col-span-2 space-y-4">
+                            <h4 className="font-bold text-gray-200 text-sm flex items-center gap-2">
+                                <Calendar size={16} className="text-brand-accent" /> Plan de déploiement
+                            </h4>
+                            <div className="space-y-4">
+                                <div className="flex gap-4">
+                                    <div className="w-12 shrink-0 text-xs font-bold text-brand-accent pt-1">1-3 Mois</div>
+                                    <div className="border-l-2 border-brand-accent/30 pl-4 pb-2">
+                                        <p className="text-sm font-semibold text-white">Quick Wins</p>
+                                        <p className="text-xs text-gray-400">{aiInsight.roadmap.quickWins}</p>
+                                    </div>
+                                </div>
+                                <div className="flex gap-4">
+                                    <div className="w-12 shrink-0 text-xs font-bold text-brand-accent pt-1">3-6 Mois</div>
+                                    <div className="border-l-2 border-brand-accent/30 pl-4 pb-2">
+                                        <p className="text-sm font-semibold text-white">Optimisation</p>
+                                        <p className="text-xs text-gray-400">{aiInsight.roadmap.midTerm}</p>
+                                    </div>
+                                </div>
+                                <div className="flex gap-4">
+                                    <div className="w-12 shrink-0 text-xs font-bold text-brand-accent pt-1">6-12 M</div>
+                                    <div className="border-l-2 border-brand-accent/30 pl-4">
+                                        <p className="text-sm font-semibold text-white">Transformation</p>
+                                        <p className="text-xs text-gray-400">{aiInsight.roadmap.longTerm}</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Trends Column */}
+                        <div className="space-y-3">
+                             <h4 className="font-bold text-gray-200 text-sm flex items-center gap-2">
+                                <BarChart3 size={16} className="text-brand-accent" /> Tendances {inputs.industry}
+                            </h4>
+                            <ul className="space-y-2">
+                                {aiInsight.sectorTrends.map((trend, i) => (
+                                    <li key={i} className="text-xs text-gray-400 bg-white/5 rounded-lg p-2 border border-white/5">
+                                        {trend}
+                                    </li>
+                                ))}
+                            </ul>
+                        </div>
+                    </div>
+
+                </div>
+            ) : (
+                <div className="text-center py-8 text-gray-400 text-sm">
+                    Impossible de générer l'analyse stratégique pour le moment.
+                </div>
+            )}
          </div>
       </div>
 
+      {/* Charts Section */}
       <div className="bg-white p-6 rounded-2xl shadow-soft border border-gray-100 print:break-inside-avoid no-break">
         <h3 className="font-bold text-gray-700 mb-6 flex items-center gap-2">
             <Target size={18} className="text-brand-dark" />
-            Comparatif des coûts & gains
+            Comparatif Financier
         </h3>
         <div className="h-64 w-full">
           <ResponsiveContainer width="100%" height="100%">
@@ -332,6 +429,7 @@ const ResultsDisplay: React.FC<Props> = ({ results, chartData, aiInsight, isAiLo
         </div>
       </div>
 
+      {/* CTA Section */}
       <div id="cta-section" className="mt-8 text-center bg-brand-accent/5 rounded-xl p-8 border border-brand-accent/10 print:hidden">
         <h4 className="font-bold text-brand-dark text-lg mb-2">Transformez ce potentiel en réalité</h4>
         <p className="text-gray-600 mb-6 max-w-lg mx-auto">Ces chiffres sont théoriques. Pour une analyse fine de vos process et une feuille de route d'implémentation, parlons-en.</p>

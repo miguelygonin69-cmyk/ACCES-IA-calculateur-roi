@@ -2,14 +2,14 @@ import React, { useState, useRef } from 'react';
 import Header from './components/Header';
 import CalculatorForm from './components/CalculatorForm';
 import ResultsDisplay from './components/ResultsDisplay';
-import { CalculatorInputs, CalculationResult, ChartDataPoint } from './types';
+import { CalculatorInputs, CalculationResult, ChartDataPoint, StrategicInsight } from './types';
 import { generateStrategicInsight } from './services/geminiService';
 import { Sparkles, TrendingUp } from 'lucide-react';
 
 const App: React.FC = () => {
   const [results, setResults] = useState<CalculationResult | null>(null);
   const [chartData, setChartData] = useState<ChartDataPoint[]>([]);
-  const [aiInsight, setAiInsight] = useState<string | null>(null);
+  const [aiInsight, setAiInsight] = useState<StrategicInsight | null>(null);
   const [loading, setLoading] = useState(false);
   const [inputs, setInputs] = useState<CalculatorInputs | null>(null);
   const resultsRef = useRef<HTMLDivElement>(null);
